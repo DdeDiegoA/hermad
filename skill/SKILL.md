@@ -152,6 +152,22 @@ workspace
 
 `herdr tab create --workspace <id> --label <dept> --cwd <repo> --no-focus` → `.result.root_pane.pane_id`. Dentro del tab: `pane split <pane> --direction right` (columnas) y `--direction down` (2ª fila). El script `orquestar.sh` arma esto desde `DEPARTAMENTOS` en `personas.env`.
 
+## System prompts
+
+Per-persona system prompts live in `templates/prompts/`:
+
+```
+templates/prompts/orquestador.md   # Hermad — orchestrator + /hermad entrypoint
+templates/prompts/analyst.md       # Mary — treasure-hunter analyst
+templates/prompts/architect.md     # Winston — pragmatic, boring-tech architect
+templates/prompts/pm.md            # John — relentless WHY? PM
+templates/prompts/dev.md           # Amelia — ultra-succinct, tests-first dev
+templates/prompts/reviewer.md      # adversarial skeptical QA
+templates/prompts/ux.md            # Sally — empathetic storyteller UX
+```
+
+The orchestrator (`src/lib/orchestrator.js`) loads the matching prompt for each persona and injects it on agent start: `--append-system-prompt` for Claude, or `herdr agent prompt` after idle for other vendors. Workers receive their persona, tab, peer-to-peer command reference, and approval policy on boot.
+
 ## Referencias
 
 - `herdr --skill` — guía completa de control para agentes (autoridad).
