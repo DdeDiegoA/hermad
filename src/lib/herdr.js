@@ -53,6 +53,30 @@ function paneSplit(paneId, direction, { cwd } = {}) {
   return { paneId: r.pane.pane_id };
 }
 
+function tabList(workspaceId) {
+  const args = ["tab", "list"];
+  if (workspaceId) args.push("--workspace", workspaceId);
+  return call(args).tabs || [];
+}
+
+function paneList(workspaceId) {
+  const args = ["pane", "list"];
+  if (workspaceId) args.push("--workspace", workspaceId);
+  return call(args).panes || [];
+}
+
+// Mueve un pane a otro tab del mismo workspace. El id puede cambiar: usar el
+// devuelto (`move_result.pane.pane_id`), no el anterior.
+function paneMove(paneId, { tab, targetPane, split } = {}) {
+  const args = ["pane", "move", paneId, "--no-focus"];
+  if (tab) args.push("--tab", tab);
+  if (targetPane) args.push("--target-pane", targetPane);
+  if (split) args.push("--split", split);
+  const r = call(args);
+  const moved = (r.move_result && r.move_result.pane && r.move_result.pane.pane_id) || (r.pane && r.pane.pane_id) || paneId;
+  return { paneId: moved };
+}
+
 // sleep sincrónico (sin async) — reusa el patrón execFileSync que ya usa este
 // módulo en vez de meter una dependencia o volver todo el CLI async por esto.
 function sleepMs(ms) {
@@ -131,4 +155,4 @@ function agentRead(name, { source = "visible", lines } = {}) {
   return (r.read && r.read.text) || r.text || "";
 }
 
-module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, agentStart, agentPrompt, agentWait, paneRun, agentList, agentRead };
+module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, tabList, paneList, paneMove, agentStart, agentPrompt, agentWait, paneRun, agentList, agentRead };

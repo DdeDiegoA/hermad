@@ -4,6 +4,7 @@ const render = require("../lib/render");
 const vendors = require("../lib/vendors");
 const herdr = require("../lib/herdr");
 const daemon = require("../lib/daemon");
+const placement = require("../lib/placement");
 const { startAgentSafe } = require("../lib/orchestrator");
 
 // Único camino para que un agente (o un humano) dropee otro agente: pasa por
@@ -31,16 +32,24 @@ function run(args) {
   }
   const name = opt("--name") || persona;
 
-  // ponytail: sin --pane se apila bajo el pane del daemon (sin agente → split seguro);
-  // ubicar en el tab de su departamento si el tablero se desordena.
+  // Sin --pane: se crea el pane desde el del daemon (shell sin agente → split
+  // seguro, no parte un pane con TUI full-screen) y se mueve al tab del
+  // departamento de la persona. Sin tab conocido, queda junto al daemon.
   let paneId = opt("--pane");
   if (!paneId) {
-    const { daemonPaneId } = daemon.loadState(project.projectDir);
+    const { daemonPaneId, workspaceId } = daemon.loadState(project.projectDir);
     if (!daemonPaneId) {
       console.error("sin pane del daemon registrado: pasá --pane <id> (un pane sin agente corriendo).");
       process.exit(1);
     }
     paneId = herdr.paneSplit(daemonPaneId, "down", { cwd: project.projectDir }).paneId;
+    paneId = placement.moveToDepartment(project, persona, paneId, {
+      workspaceId,
+      tabList: herdr.tabList,
+      paneList: herdr.paneList,
+      paneMove: herdr.paneMove,
+      log: console.log,
+    });
   }
 
   const artifacts = render.renderPersona({ projectDir: project.projectDir, agentName: name, name: persona, persona: p, compactPct: project.compactPct || 50 });

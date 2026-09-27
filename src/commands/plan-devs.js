@@ -8,6 +8,7 @@ const render = require("../lib/render");
 const vendors = require("../lib/vendors");
 const herdr = require("../lib/herdr");
 const daemon = require("../lib/daemon");
+const placement = require("../lib/placement");
 
 // dev-1..N libres: salta los nombres que ya tienen una story no terminada (si no,
 // una 2.ª corrida le pisaría el nombre a un dev vivo y los BUG irían al dev erróneo).
@@ -114,7 +115,15 @@ function run(args) {
       return;
     }
     try {
-      const { paneId } = herdr.paneSplit(state.daemonPaneId, "down", { cwd: wtDir });
+      let { paneId } = herdr.paneSplit(state.daemonPaneId, "down", { cwd: wtDir });
+      // mismo destino que `hermad spawn`: el tab del departamento `dev` (desarrollo).
+      paneId = placement.moveToDepartment(project, "dev", paneId, {
+        workspaceId: state.workspaceId,
+        tabList: herdr.tabList,
+        paneList: herdr.paneList,
+        paneMove: herdr.paneMove,
+        log: console.log,
+      });
       herdr.agentStart(dev, devPersona.kind, paneId, plan.args);
       if (plan.promptText) {
         herdr.agentWait(dev, ["idle"], 60000);
