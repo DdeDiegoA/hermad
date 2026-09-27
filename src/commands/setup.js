@@ -30,13 +30,29 @@ function linkOne(target, linkPath) {
     console.log(`  ! ya existe (no-symlink o distinto): ${linkPath} — lo dejo intacto`);
     return;
   }
-  fs.symlinkSync(target, linkPath);
-  console.log(`  + ${linkPath} -> ${target}`);
+  const isDir = fs.statSync(target).isDirectory();
+  try {
+    // Windows: junction para dirs (no pide admin); para archivos el symlink requiere
+    // modo desarrollador o admin, así que si falla se copia (re-correr setup tras update).
+    fs.symlinkSync(target, linkPath, isDir ? (process.platform === "win32" ? "junction" : "dir") : "file");
+    console.log(`  + ${linkPath} -> ${target}`);
+  } catch (err) {
+    if (process.platform !== "win32" || isDir) throw err;
+    fs.copyFileSync(target, linkPath);
+    console.log(`  + ${linkPath} (copia: symlink no permitido — corré 'hermad setup' tras cada update)`);
+  }
 }
 
 function installSkillAndCommand() {
   console.log("\nInstalando skill + comando /hermad (symlinks a este repo):");
-  for (const [target, linkPath] of SYMLINKS) linkOne(target, linkPath);
+  for (const [target, linkPath] of SYMLINKS) {
+    // hermes no corre nativo en Windows (herdr no lo lista con panes cmd/PowerShell): no instalamos su symlink.
+    if (process.platform === "win32" && linkPath.includes(".hermes")) {
+      console.log(`  ! hermes no soportado nativo en Windows — salto ${linkPath}`);
+      continue;
+    }
+    linkOne(target, linkPath);
+  }
 }
 
 async function pickPersona(name, current, installedVendors) {
@@ -64,6 +80,12 @@ async function run(args) {
   console.log(`\nCLIs de coding detectadas en PATH: ${installed.length ? installed.join(", ") : "(ninguna — instalá al menos una: claude, opencode, codex, gemini)"}`);
 
   const cfg = config.load();
+  if (process.platform === "win32") {
+    const hermes = Object.entries(cfg.personas).filter(([, p]) => p.kind === "hermes").map(([n]) => n);
+    if (hermes.length) {
+      console.log(`\n[!] personas en hermes (${hermes.join(", ")}): hermes no corre nativo en Windows — usá WSL o cambialas a claude/opencode con \`hermad settings agents\`.`);
+    }
+  }
   const skipAgents = args.includes("--skip-agents");
   if (!skipAgents) {
     console.log("\nAhora definí vendor + modelo por agente (enter = default).");

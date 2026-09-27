@@ -7,9 +7,10 @@ const PROMPTS_DIR = path.join(__dirname, "..", "..", "templates", "prompts");
 // Frontmatter mínimo (name, skills, readonly) al estilo YAML plano — sin
 // dependencias. Cualquier línea desconocida se ignora.
 function parseFrontmatter(text) {
+  text = text.replace(/\r\n/g, "\n"); // checkout con CRLF (Windows) no debe perder el frontmatter
   const meta = {};
   let body = text;
-  if (text.startsWith("---\n") || text.startsWith("---\r\n")) {
+  if (text.startsWith("---\n")) {
     const end = text.indexOf("\n---", 3);
     if (end !== -1) {
       const fm = text.slice(3, end).trim();

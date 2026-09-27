@@ -1,6 +1,6 @@
 {
   "name": "hermad",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI para instalar y gobernar Hermad (Herdr x BMad): elegí CLI/modelo por agente, arrancá proyectos agenticos, mantené todo actualizado desde GitHub.",
   "bin": {
     "hermad": "bin/hermad.js"

@@ -14,8 +14,9 @@ function run(args) {
   const story = storyIdx >= 0 ? args[storyIdx + 1] : null;
   const project = resolveProject();
   if (!project) {
+    // exit 0: lo llama el hook SessionStart y no debe romper el arranque del agente.
     console.error("No hay proyecto (ni .hermad/project.json ni activo).");
-    process.exit(1);
+    return;
   }
   const out = memory.slice(project.projectDir, { persona, story });
   if (out) process.stdout.write(out + "\n");

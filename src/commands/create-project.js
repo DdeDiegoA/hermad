@@ -14,7 +14,10 @@ const AGENTS_TEMPLATE = path.join(REPO_ROOT, "templates", "AGENTS-template.md");
 // la fuente de verdad nativa es ~/.hermad/active-project.json (ver lib/active-project.js).
 const ACTIVE_PERSONAS_ENV = path.join(os.homedir(), ".hermad", "personas.env");
 
-const BMAD_INSTALL_CMD =
+// macOS/Linux: el instalador de BMad (clack) necesita TTY y columnas → script + stty.
+// Windows: la consola ya es un TTY con stdio heredado; npx directo.
+const BMAD_ARGS = "npx -y bmad-method@latest install --yes --directory . --modules bmm --tools claude-code,opencode --communication-language Spanish --document-output-language Spanish";
+const BMAD_INSTALL_CMD = process.platform === "win32" ? BMAD_ARGS :
   "script -q /tmp/b.log sh -c 'stty cols 160 rows 50 2>/dev/null || true; exec npx -y bmad-method@latest install --yes --directory . --modules bmm --tools claude-code,opencode --communication-language Spanish --document-output-language Spanish'";
 
 function run(args) {
@@ -67,7 +70,7 @@ function run(args) {
 
   if (args.includes("--run-bmad-install")) {
     console.log("[+] instalando BMad (requiere TTY)...");
-    execSync(BMAD_INSTALL_CMD, { cwd: projectDir, stdio: "inherit", shell: "/bin/sh" });
+    execSync(BMAD_INSTALL_CMD, { cwd: projectDir, stdio: "inherit", shell: process.platform === "win32" ? true : "/bin/sh" });
   } else {
     console.log("\nSiguiente paso — instalar BMad en el proyecto (requiere TTY):");
     console.log(`  cd ${projectDir} && ${BMAD_INSTALL_CMD}`);

@@ -7,8 +7,9 @@ const { execFileSync } = require("child_process");
 const { test } = require("node:test");
 
 // Aislar HOME ANTES de requerir los módulos que cachean ~/.hermad/*.
+// En Windows os.homedir() usa USERPROFILE, no HOME → espejamos el tmp en los dos.
 const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-home-"));
-process.env.HOME = tmpHome;
+process.env.HOME = process.env.USERPROFILE = tmpHome;
 
 const { resolveProject } = require("../src/lib/project");
 const { saveActiveProject } = require("../src/lib/active-project");
@@ -85,13 +86,15 @@ test("strict no cae al proyecto activo global", () => {
 
 test("devuelve null sin project.json ni activo", () => {
   const emptyHome = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-home2-"));
-  const saved = process.env.HOME;
-  process.env.HOME = emptyHome;
+  const savedHome = process.env.HOME;
+  const savedProfile = process.env.USERPROFILE;
+  process.env.HOME = process.env.USERPROFILE = emptyHome;
   // recargar active-project con el HOME limpio
   delete require.cache[require.resolve("../src/lib/active-project")];
   delete require.cache[require.resolve("../src/lib/project")];
   const fresh = require("../src/lib/project");
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-empty2-"));
   assert.equal(fresh.resolveProject(empty), null);
-  process.env.HOME = saved;
+  process.env.HOME = savedHome;
+  process.env.USERPROFILE = savedProfile;
 });

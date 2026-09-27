@@ -32,7 +32,7 @@ function parseInlineList(s) {
 function parseStories(text) {
   const stories = [];
   let cur = null;
-  for (const raw of text.split("\n")) {
+  for (const raw of text.split(/\r?\n/)) {
     const line = raw.replace(/#.*$/, "").replace(/\s+$/, "");
     if (!line.trim()) continue;
     const start = line.match(/^\s*-\s+id:\s*(.+)$/);

@@ -1,6 +1,6 @@
 # Hermad — Orquestación multi-agente multi-vendor (Herdr × BMad)
 
-Sistema para orquestar agentes de coding en paralelo: **Herdr** (terminales multi-vendor/modelo, con estado `blocked`) + **BMad** (metodología spec-driven: 5 personas + skills de SDLC).
+Sistema para orquestar agentes de coding en paralelo: **Herdr** (terminales multi-vendor/modelo, con estado `blocked`) + **BMad** (metodología spec-driven: 5 personas + skills de SDLC). Corre en macOS, Linux y Windows (herdr tiene soporte Windows en beta).
 
 ## Componentes
 
@@ -8,16 +8,19 @@ Sistema para orquestar agentes de coding en paralelo: **Herdr** (terminales mult
 |---|---|
 | `bin/hermad.js` | Entrypoint del CLI `hermad` |
 | `src/cli.js` | Dispatcher de subcomandos |
-| `src/commands/` | `setup`, `create-project`, `settings-agents`, `update` |
-| `src/lib/` | Detección de vendors/modelos, config (`~/.hermad/config.json`), generador de `personas.env` |
+| `src/commands/` | Subcomandos: `setup`, `create-project`, `settings-*`, `start-team`, `open-orchestrator`, `orchestrate`, `daemon`, `send`, `note`, `memory`, `spawn`, `plan-devs`, `skills`, `update` |
+| `src/lib/` | Herdr (workspace/panes/agentes), vendors/modelos, `render` por proyecto (prompt + skills + permisos por vendor), memoria 2 capas, `daemon` (buzón + rutas `HERMAD:`), `stories`/worktrees, config (`~/.hermad/`) |
 | `skill/` | Skill `herdr-bmad` — protocolo completo + pitfalls (instalada en Hermes + Claude Code + OpenCode vía symlink, lo hace `hermad setup`) |
 | `skill/scripts/orquestar.sh` | Bootstrap: workspace + departamentos (tabs) + agentes en grid |
 | `skill/scripts/personas.env` | Ejemplo de referencia (git-tracked, no lo toca el CLI) |
 | `~/.hermad/personas.env` | Config **activa** (la que `orquestar.sh` lee de verdad): mapeo persona→vendor/modelo + departamentos — fuera del repo a propósito, la regenera `hermad create-project` / `hermad settings project` |
 | `command/hermad.md` | Entrypoint `/hermad` (Claude Code + OpenCode) |
 | `templates/AGENTS-template.md` | Plantilla de memoria compartida (solo el orquestador la escribe) |
-| `docs/` | Guía completa |
+| `templates/prompts/<persona>.md` | System prompt por persona (personalidad + allowlist de skills) |
+| `docs/` | Guía completa (`vendors.md` = matriz por vendor/plataforma, `plan-mejoras.md`, etc.) |
 | `research/` | Investigación: comandos herdr 0.9.0, flujo BMad desatendido, patrones de integración |
+| `.github/workflows/test.yml` | CI: `npm test` en ubuntu, macOS y windows-latest |
+| `.gitattributes` | EOL consistente (`eol=lf`; `.cmd`/`.ps1` en crlf) — checkouts Windows sanos |
 
 ## CLI: `hermad`
 
@@ -83,6 +86,24 @@ bash skill/scripts/orquestar.sh "lo que quieras construir"
 ## Política de aprobación
 
 Auto-aprueba salvo auth/dinero/DB/seguridad → escala a Diego.
+
+## Windows (nativo)
+
+herdr tiene soporte nativo en beta (panes con `cmd.exe`/PowerShell vía ConPTY):
+
+```powershell
+# herdr (PowerShell)
+powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"
+
+# hermad
+npm i -g hermad                  # cuando esté publicado; si no: git clone <repo> && cd hermad && npm link
+hermad setup                     # junctions para dirs (sin admin); copia de archivos si el symlink no se permite
+hermad create-project "nombre" --run-bmad-install
+```
+
+- `hermes` no corre nativo en Windows: usá WSL, o asigná sus personas a `claude`/`opencode` (`hermad settings agents`). `hermad setup` lo avisa y no instala su symlink.
+- `skill/scripts/orquestar.sh` es bash (copia de referencia); en Windows usá el CLI (`hermad start-team`, `hermad open-orchestrator`, etc.).
+- Tras cada `hermad update`, volvé a correr `hermad setup`: los archivos copiados (en vez de enlazados) no se refrescan solos.
 
 ## Deploy (una sola fuente de verdad)
 

@@ -6,7 +6,8 @@ const assert = require("assert");
 const { test } = require("node:test");
 
 // HOME aislado ANTES de requerir skills/render (cachean ~ al cargar).
-process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-render-home-"));
+// En Windows os.homedir() usa USERPROFILE, no HOME → espejamos el tmp en los dos.
+process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-render-home-"));
 const render = require("../src/lib/render");
 const memory = require("../src/lib/memory");
 

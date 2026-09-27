@@ -36,7 +36,7 @@ function relevant(projectDir, { persona, story } = {}) {
   const file = journalPath(projectDir);
   if (!fs.existsSync(file)) return [];
   const out = [];
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
     const m = line.match(/^-\s+\S+\s+\[[^\]]*\]\s+\[([^\]]+)\]\s+(.*)$/);
     if (!m) continue;
     const scope = m[1];

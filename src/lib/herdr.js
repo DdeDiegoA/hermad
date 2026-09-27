@@ -1,11 +1,17 @@
 "use strict";
 const { execFileSync } = require("child_process");
 
+const IS_WIN = process.platform === "win32";
+
 function ensureInstalled() {
   try {
-    execFileSync("which", ["herdr"], { stdio: "ignore" });
+    execFileSync(IS_WIN ? "where" : "which", ["herdr"], { stdio: "ignore" });
   } catch {
-    throw new Error("herdr no instalado: brew install herdr");
+    throw new Error(
+      IS_WIN
+        ? 'herdr no instalado: powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"'
+        : "herdr no instalado: brew install herdr"
+    );
   }
 }
 
@@ -77,10 +83,9 @@ function paneMove(paneId, { tab, targetPane, split } = {}) {
   return { paneId: moved };
 }
 
-// sleep sincrónico (sin async) — reusa el patrón execFileSync que ya usa este
-// módulo en vez de meter una dependencia o volver todo el CLI async por esto.
+// sleep sincrónico (sin async ni binario `sleep`, que no existe en Windows).
 function sleepMs(ms) {
-  execFileSync("sleep", [(ms / 1000).toString()]);
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 // vendorArgs can be a plain string like "--model opus" (split on spaces) or an

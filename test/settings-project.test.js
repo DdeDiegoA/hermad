@@ -6,7 +6,8 @@ const assert = require("assert");
 const { test } = require("node:test");
 
 // HOME aislado ANTES de requerir (active-project cachea ~/.hermad).
-process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-setproj-home-"));
+// En Windows os.homedir() usa USERPROFILE, no HOME → espejamos el tmp en los dos.
+process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-setproj-home-"));
 const { saveProjectPersonas } = require("../src/commands/settings-project");
 
 test("saveProjectPersonas escribe el proyecto y NO la config global", () => {

@@ -39,6 +39,27 @@ Método: `--help` + archivos de config reales + pruebas en vivo (marcadas ✔). 
 - **Fase 7 (orquestación)**: clarificación de tracks en claude; readers con `--setting-sources project,local` y sin Edit/Write.
 - **AGENTS-template**: hermes no lee `AGENTS.md` nativo → para hermes inyectar el slice vía `SOUL.md`/prompt (o equivalente a `CLAUDE.md`).
 
+## Windows (nativo)
+
+herdr tiene soporte nativo en beta (docs `windows-beta.mdx`, v0.9.1): panes con `cmd.exe`/PowerShell vía ConPTY. Instalación: `powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"`.
+
+| Vendor | Windows | Nota |
+|---|---|---|
+| claude | ✔ integración herdr | todo el camino de hermad aplica igual |
+| opencode | ✔ integración herdr | shim `.cmd`: hermad lo llama con `shell` en win32 |
+| hermes | ✘ no listado por herdr en Windows | usar WSL, o asignar la persona a claude/opencode |
+| codex / gemini | documentados | codex listado por herdr; gemini no verificado |
+
+Qué ajusta hermad en win32: `where` en vez de `which`; sleep sin binario (`Atomics.wait`); junctions para dirs (sin admin) y copia de archivos si el symlink no se permite (`hermad setup`); instalador BMad con `npx` directo (sin `script`/`stty`); hook `SessionStart` sin sintaxis POSIX; parsers tolerantes a CRLF + `.gitattributes` con `eol=lf`.
+
+Comillas y espacios (verificado en el binario 0.9.0): herdr **codifica/cita los args del agente para el shell destino** y rechaza lo que no puede codificar con `invalid_agent_argument` ("agent arguments cannot be encoded safely for the target shell"). Por eso hermad **no** pre-cita rutas en `startPlan` (sería doble-codificación): `C:\Users\Nombre Apellido\...` lo resuelve herdr, y si no puede, falla explícito en vez de en silencio.
+
+Rutas de config en Windows: opencode usa `%USERPROFILE%\.config\opencode` (no `%APPDATA%`), que es lo que ya calcula `skills.js` vía `os.homedir()`; claude usa `%USERPROFILE%\.claude`.
+
+Límites de herdr en Windows que heredamos: cursor que parpadea, IME desubicado, el proceso no sigue `cd` en PowerShell, sin attach directo ni handoff del server. `skill/scripts/orquestar.sh` es bash (copia de referencia; en Windows usar el CLI).
+
+Sin verificación en una máquina Windows todavía: el CI (`.github/workflows/test.yml`) corre `npm test` en ubuntu, macOS y windows.
+
 ## Evidencia (comandos clave)
 
 ```

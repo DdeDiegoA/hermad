@@ -20,7 +20,7 @@ function linkSkill(src, dest) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.rmSync(dest, { recursive: true, force: true });
   try {
-    fs.symlinkSync(src, dest, "dir");
+    fs.symlinkSync(src, dest, process.platform === "win32" ? "junction" : "dir"); // junction: sin admin en Windows
   } catch {
     fs.cpSync(src, dest, { recursive: true });
   }
@@ -84,7 +84,7 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   write(
     path.join(pluginDir, "hooks", "hooks.json"),
     JSON.stringify(
-      { hooks: { SessionStart: [{ matcher: "startup|resume|clear|compact", hooks: [{ type: "command", command: `hermad memory slice ${name}; exit 0`, timeout: 10 }] }] } },
+      { hooks: { SessionStart: [{ matcher: "startup|resume|clear|compact", hooks: [{ type: "command", command: `hermad memory slice ${name}`, timeout: 10 }] }] } },
       null,
       2
     ) + "\n"
@@ -141,7 +141,7 @@ function ensureClaudeMemory(projectDir) {
     return true;
   }
   const content = fs.readFileSync(file, "utf8");
-  if (!content.split("\n").includes(importLine)) {
+  if (!content.split(/\r?\n/).map((l) => l.trim()).includes(importLine)) {
     fs.appendFileSync(file, `\n${importLine}\n`);
     return true;
   }
@@ -167,7 +167,7 @@ function ensureGitignore(projectDir) {
   const file = path.join(projectDir, ".gitignore");
   const entries = [".hermad/generated/", ".hermad/worktrees/", ".hermad/inbox/", ".hermad/memory/", ".hermad/state.json", ".opencode/agents/hermad-*"];
   const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-  const lines = current.split("\n");
+  const lines = current.split(/\r?\n/).map((l) => l.trim());
   const missing = entries.filter((e) => !lines.includes(e));
   if (!missing.length) return false;
   fs.writeFileSync(file, current.replace(/\n?$/, "\n") + missing.join("\n") + "\n");

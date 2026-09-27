@@ -6,7 +6,8 @@ const assert = require("assert");
 const { test } = require("node:test");
 
 // HOME aislado ANTES de requerir (config y active-project cachean ~/.hermad).
-process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-setagents-home-"));
+// En Windows os.homedir() usa USERPROFILE, no HOME → espejamos el tmp en los dos.
+process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-setagents-home-"));
 const { applyGlobal } = require("../src/commands/settings-agents");
 const { saveActiveProject } = require("../src/lib/active-project");
 

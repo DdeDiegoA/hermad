@@ -52,8 +52,9 @@ function detectInstalledVendors() {
 function dynamicModels(kind) {
   if (kind !== "opencode") return null;
   try {
-    const out = execFileSync("opencode", ["models"], { encoding: "utf8", timeout: 15000 });
-    const ids = out.split("\n").map((l) => l.trim()).filter(Boolean);
+    // En Windows `opencode` es un shim .cmd: sin shell, execFileSync no lo encuentra.
+    const out = execFileSync("opencode", ["models"], { encoding: "utf8", timeout: 15000, shell: process.platform === "win32" });
+    const ids = out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     return ids.map((id) => ({ id, label: id, flag: `-m ${id}` }));
   } catch {
     return null;
