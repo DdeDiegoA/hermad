@@ -148,9 +148,14 @@ function paneRun(paneId, command, { retries = 20, retryDelayMs = 1000 } = {}) {
   }
 }
 
-function agentList() {
-  const r = call(["agent", "list"]);
-  return r.agents || [];
+// `agent list` es global al server e incluye agentes DETECTADOS sin nombre
+// (`name: null`; el nombre solo lo asigna `agent start` y sigue al ocupante del
+// pane). Todo el daemon clavea por nombre → descartamos los anónimos acá, en el
+// único choke point, en vez de defender a cada consumidor. `callFn` inyectable
+// para test.
+function agentList(callFn = call) {
+  const r = callFn(["agent", "list"]);
+  return (r.agents || []).filter((a) => typeof a.name === "string" && a.name);
 }
 
 function agentRead(name, { source = "visible", lines } = {}) {

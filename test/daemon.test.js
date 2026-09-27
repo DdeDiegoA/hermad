@@ -194,3 +194,52 @@ test("compact watchdog actúa con % contextual y no con un % cualquiera", () => 
   daemon.runOnce(project({ personas: { dev: { kind: "claude" } }, routes: [] }), claude.io);
   assert.equal(claude.prompted.length, 0, "claude compacta nativo, no watchdog");
 });
+
+test("runOnce ignora un agente detectado sin nombre y entrega al válido", () => {
+  const p = project();
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev", text: "haz S1" });
+  // formato real de `herdr agent list`: el agente detectado sin `agent start` trae name:null.
+  const list = [
+    { name: null, agent: "claude", agent_status: "idle", workspace_id: "w1" },
+    { name: "dev", agent: "claude", agent_status: "idle", workspace_id: "w1" },
+  ];
+  const { io, prompted } = stubIo({ list, read: { dev: "" } });
+  assert.doesNotThrow(() => daemon.runOnce(p, io));
+  assert.ok(prompted.some((m) => m.name === "dev" && /haz S1/.test(m.text)), "el válido igual recibe");
+});
+
+test("un agente que falla no tumba el tick para los demás", () => {
+  const p = project();
+  const sent = [];
+  let calls = 0;
+  const io = {
+    agentList: () => [
+      { name: "dev", agent_status: "idle" },
+      { name: "reviewer", agent_status: "idle" },
+    ],
+    agentRead: (name) => (name === "dev" ? "HERMAD:DONE story=S1" : "HERMAD:BUG story=S2"),
+    agentPrompt: () => {},
+    // el 1.º send (ruta del dev) explota; el del reviewer debe seguir.
+    send: (m) => {
+      if (++calls === 1) throw new Error("send boom");
+      sent.push(m);
+    },
+    log: () => {},
+  };
+  assert.doesNotThrow(() => daemon.runOnce(p, io));
+  assert.ok(sent.some((m) => m.to === "dev" && /story=S2/.test(m.text)), "el reviewer se procesa igual");
+});
+
+test("runOnce ignora agentes de otro workspace cuando el state conoce el suyo", () => {
+  const p = project();
+  daemon.saveState(p.projectDir, { ...daemon.loadState(p.projectDir), workspaceId: "w1" });
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev", text: "haz S1" });
+
+  const other = stubIo({ list: [{ name: "dev", agent_status: "idle", workspace_id: "w2" }], read: { dev: "" } });
+  daemon.runOnce(p, other.io);
+  assert.equal(other.prompted.length, 0, "otro workspace: ignorado");
+
+  const mine = stubIo({ list: [{ name: "dev", agent_status: "idle", workspace_id: "w1" }], read: { dev: "" } });
+  daemon.runOnce(p, mine.io);
+  assert.equal(mine.prompted.length, 1, "mismo workspace: entrega");
+});

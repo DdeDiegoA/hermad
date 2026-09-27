@@ -164,6 +164,7 @@ function parseContextPct(text) {
 
 // Los devs paralelos se llaman dev-1, dev-2… (plan-devs); su persona sigue siendo `dev`.
 function personaOf(agentName, personas) {
+  if (!agentName) return null; // agente detectado sin nombre
   if (personas[agentName]) return agentName;
   const base = agentName.replace(/-\d+$/, "");
   return personas[base] ? base : null;
@@ -212,52 +213,61 @@ function runOnce(project, io) {
   let acted = 0;
 
   for (const agent of io.agentList()) {
+    // `agent list` es global al server: ignorar agentes de otro workspace (p.ej.
+    // un dev de otro proyecto). Solo filtra si ambos lados conocen el workspace.
+    if (state.workspaceId && agent.workspace_id && agent.workspace_id !== state.workspaceId) continue;
     const personaKey = personaOf(agent.name, project.personas || {});
     if (!personaKey) continue;
-    const status = agent.agent_status;
 
-    // Buzón: de a uno por tick, nunca a blocked/working, y a done/ solo si el
-    // prompt salió bien.
-    if (status === "idle" || status === "done") {
-      const msg = nextPending(project.projectDir, agent.name);
-      if (msg) {
-        try {
-          io.agentPrompt(agent.name, msg.text);
-          markDone(project.projectDir, agent.name, msg.file);
-          acted++;
-        } catch (err) {
-          io.log(`[!] entrega a ${agent.name} falló (${err.code || err.message}); dejo el mensaje en el buzón`);
-        }
-      }
-    }
-
-    // Marcadores HERMAD: (solo cuando la pantalla visible cambió).
-    let text = "";
     try {
-      text = io.agentRead(agent.name, { source: "visible" });
-    } catch {
-      continue;
-    }
-    const hash = crypto.createHash("sha1").update(text).digest("hex");
-    if (state.screens[agent.name] !== hash) {
-      state.screens[agent.name] = hash;
-      acted += processMarkers(project, agent.name, personaKey, text, state, io);
-    }
+      const status = agent.agent_status;
 
-    // Watchdog de compact (solo vendors sin umbral nativo), con cooldown.
-    if (status === "idle" && !NATIVE_COMPACT.has((project.personas[personaKey] || {}).kind)) {
-      const pct = parseContextPct(text);
-      const last = state.compact[agent.name] || 0;
-      if (pct != null && pct >= compactPct && Date.now() - last >= COMPACT_COOLDOWN_MS) {
-        try {
-          io.agentPrompt(agent.name, "/compact");
-          state.compact[agent.name] = Date.now();
-          io.log(`[=] compact watchdog: ${agent.name} al ${pct}% → /compact`);
-          acted++;
-        } catch (err) {
-          io.log(`[!] compact watchdog ${agent.name}: ${err.code || err.message}`);
+      // Buzón: de a uno por tick, nunca a blocked/working, y a done/ solo si el
+      // prompt salió bien.
+      if (status === "idle" || status === "done") {
+        const msg = nextPending(project.projectDir, agent.name);
+        if (msg) {
+          try {
+            io.agentPrompt(agent.name, msg.text);
+            markDone(project.projectDir, agent.name, msg.file);
+            acted++;
+          } catch (err) {
+            io.log(`[!] entrega a ${agent.name} falló (${err.code || err.message}); dejo el mensaje en el buzón`);
+          }
         }
       }
+
+      // Marcadores HERMAD: (solo cuando la pantalla visible cambió).
+      let text = "";
+      try {
+        text = io.agentRead(agent.name, { source: "visible" });
+      } catch {
+        continue;
+      }
+      const hash = crypto.createHash("sha1").update(text).digest("hex");
+      if (state.screens[agent.name] !== hash) {
+        state.screens[agent.name] = hash;
+        acted += processMarkers(project, agent.name, personaKey, text, state, io);
+      }
+
+      // Watchdog de compact (solo vendors sin umbral nativo), con cooldown.
+      if (status === "idle" && !NATIVE_COMPACT.has((project.personas[personaKey] || {}).kind)) {
+        const pct = parseContextPct(text);
+        const last = state.compact[agent.name] || 0;
+        if (pct != null && pct >= compactPct && Date.now() - last >= COMPACT_COOLDOWN_MS) {
+          try {
+            io.agentPrompt(agent.name, "/compact");
+            state.compact[agent.name] = Date.now();
+            io.log(`[=] compact watchdog: ${agent.name} al ${pct}% → /compact`);
+            acted++;
+          } catch (err) {
+            io.log(`[!] compact watchdog ${agent.name}: ${err.code || err.message}`);
+          }
+        }
+      }
+    } catch (err) {
+      // Un agente problemático no debe tumbar el tick para todos los demás.
+      io.log(`[!] agente ${agent.name} falló en el tick (${err.message || err}); sigo con el resto`);
     }
   }
 
@@ -281,11 +291,23 @@ function loop(project, { intervalMs = 5000 } = {}) {
   // el send del io debe escribir en el proyecto resuelto, no en cwd mutable
   io.send = ({ from, to, text }) => send(project.projectDir, { from, to, text });
   console.log(`[daemon] proyecto ${project.projectDir} · poll cada ${intervalMs / 1000}s · Ctrl-C para salir`);
+  // Un error repetido cada tick tapa todo lo demás: mostramos el stack la 1.ª vez
+  // y después el mismo mensaje a lo sumo una vez por minuto.
+  let lastErr = { msg: null, at: 0 };
   const tick = () => {
     try {
       runOnce(project, io);
     } catch (err) {
-      console.log(`[daemon] error en poll: ${err.message || err}`);
+      const msg = err.message || String(err);
+      const now = Date.now();
+      if (lastErr.msg !== msg) {
+        console.log(`[daemon] error en poll: ${msg}`);
+        if (err.stack) console.log(err.stack);
+        lastErr = { msg, at: now };
+      } else if (now - lastErr.at >= 60000) {
+        console.log(`[daemon] error en poll (repetido): ${msg}`);
+        lastErr.at = now;
+      }
     }
   };
   tick();
