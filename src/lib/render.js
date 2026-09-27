@@ -97,7 +97,12 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   };
   // readonly: se niegan los writers directos; Bash de escritura queda documentado
   // en el prompt (los permisos de Bash no cubren `>` ni todos los writers).
-  if (p.readonly) settings.permissions = { deny: ["Edit", "Write", "NotebookEdit", "Bash(sed -i:*)", "Bash(tee:*)", "Bash(dd:*)"] };
+  // Las skills permitidas llegan por el plugin (hermad-<persona>:<skill>). Las del
+  // proyecto (p.ej. las 29 de BMad en .claude/skills/) las carga claude igual con
+  // --setting-sources project, así que se niegan todas: la allowlist queda en el plugin.
+  const deny = skills.listProjectClaude(projectDir, sourceDir).map((n) => `Skill(${n})`);
+  if (p.readonly) deny.push("Edit", "Write", "NotebookEdit", "Bash(sed -i:*)", "Bash(tee:*)", "Bash(dd:*)");
+  if (deny.length) settings.permissions = { deny };
   const settingsFile = path.join(projectDir, GEN_DIR, "claude", `${name}.settings.json`);
   write(settingsFile, JSON.stringify(settings, null, 2) + "\n");
 

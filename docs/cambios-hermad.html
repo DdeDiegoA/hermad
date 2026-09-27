@@ -1,0 +1,494 @@
+<title>Hermad ECN-001</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --paper: #eef2f5;
+  --sheet: #f7f9fb;
+  --ink: #1b2a44;
+  --ink-soft: #3d4d68;
+  --graphite: #5f6e84;
+  --rule: #b9c4d2;
+  --rule-strong: #8796ab;
+  --redline: #b8321f;
+  --redline-wash: #f6e3df;
+  --approve: #0d6e62;
+  --approve-wash: #dcefeb;
+  --code-bg: #e3e9f0;
+  --focus: #0d6e62;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0b2139; --sheet: #0f2a47; --ink: #e4edf7; --ink-soft: #bfd0e3; --graphite: #93a9c3;
+    --rule: #294a6e; --rule-strong: #4a6d94; --redline: #ff8a78; --redline-wash: #3a2530;
+    --approve: #62d6c2; --approve-wash: #123f45; --code-bg: #0a2036; --focus: #62d6c2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0b2139; --sheet: #0f2a47; --ink: #e4edf7; --ink-soft: #bfd0e3; --graphite: #93a9c3;
+  --rule: #294a6e; --rule-strong: #4a6d94; --redline: #ff8a78; --redline-wash: #3a2530;
+  --approve: #62d6c2; --approve-wash: #123f45; --code-bg: #0a2036; --focus: #62d6c2;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.6 var(--f-body);
+  padding-inline: 16px;
+  padding-block: 28px 64px;
+}
+::selection { background: var(--approve-wash); color: var(--ink); }
+a { color: var(--approve); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+code, pre { font-family: var(--f-mono); font-size: 0.86em; }
+code { color: var(--ink); background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 3px; overflow-wrap: anywhere; }
+pre code { background: none; padding: 0; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+.sheet {
+  max-width: 1180px;
+  margin-inline: auto;
+  background: var(--sheet);
+  border: 1.5px solid var(--ink);
+  outline: 1px solid var(--rule-strong);
+  outline-offset: 6px;
+  position: relative;
+  color: var(--ink);
+  --pad: clamp(20px, 3.5vw, 44px);
+  padding: var(--pad);
+}
+.zones-x, .zones-y { position: absolute; display: flex; font: 600 11px/1 var(--f-label); color: var(--graphite); letter-spacing: 0.08em; pointer-events: none; }
+.zones-x { left: 0; right: 0; justify-content: space-around; }
+.zones-x.top { top: -21px; } .zones-x.bottom { bottom: -21px; }
+.zones-y { top: 0; bottom: 0; flex-direction: column; justify-content: space-around; }
+.zones-y.left { left: -21px; } .zones-y.right { right: -21px; }
+.ticks { position: absolute; inset: -7px; pointer-events: none;
+  background:
+    repeating-linear-gradient(to right, transparent 0 calc(100% / 6 - 1px), var(--rule-strong) calc(100% / 6 - 1px) calc(100% / 6)) top / 100% 7px no-repeat,
+    repeating-linear-gradient(to right, transparent 0 calc(100% / 6 - 1px), var(--rule-strong) calc(100% / 6 - 1px) calc(100% / 6)) bottom / 100% 7px no-repeat,
+    repeating-linear-gradient(to bottom, transparent 0 calc(100% / 4 - 1px), var(--rule-strong) calc(100% / 4 - 1px) calc(100% / 4)) left / 7px 100% no-repeat,
+    repeating-linear-gradient(to bottom, transparent 0 calc(100% / 4 - 1px), var(--rule-strong) calc(100% / 4 - 1px) calc(100% / 4)) right / 7px 100% no-repeat; }
+@media (max-width: 720px) { .zones-x, .zones-y, .ticks { display: none; } .sheet { outline: none; } }
+
+.head { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(20px, 3vw, 40px); align-items: start; }
+@media (max-width: 900px) { .head { grid-template-columns: minmax(0, 1fr); } }
+.titleblock { border: 1.5px solid var(--ink); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tb-cell { border-right: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); padding: 8px 10px 10px; min-width: 0; }
+.tb-cell.span4 { grid-column: span 4; border-right: 0; }
+.tb-cell.span2 { grid-column: span 2; }
+.tb-cell.end { border-right: 0; }
+.tb-cell.last { border-bottom: 0; }
+.tb-k { display: block; font: 600 11px/1.2 var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--graphite); }
+.tb-v { display: block; font: 600 15px/1.35 var(--f-label); letter-spacing: 0.02em; margin-top: 3px; overflow-wrap: anywhere; }
+.tb-v.mono { font-family: var(--f-mono); font-size: 13.5px; }
+@media (max-width: 520px) {
+  .titleblock { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tb-cell.span4, .tb-cell.span2 { grid-column: span 2; border-right: 0; }
+  .tb-cell:nth-child(odd):not(.span4):not(.span2) { border-right: 1px solid var(--rule-strong); }
+  .tb-cell:nth-child(even):not(.span4):not(.span2) { border-right: 0; }
+  .tb-cell.last { border-bottom: 1px solid var(--rule-strong); }
+  .tb-cell.last:last-child { border-bottom: 0; }
+}
+h1 { font: 700 clamp(30px, 4.6vw, 52px)/1.02 var(--f-label); letter-spacing: -0.01em; margin-top: 4px; }
+.lede { margin: 10px 0 0; color: var(--ink-soft); max-width: 60ch; }
+.status { display: inline-flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--approve); flex: none; }
+.dot.warn { background: var(--redline); }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+caption { text-align: left; font: 700 13px/1 var(--f-label); letter-spacing: 0.12em; text-transform: uppercase; padding-bottom: 10px; color: var(--ink); }
+th, td { border-bottom: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { font: 600 11px/1.2 var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--graphite); border-bottom: 1.5px solid var(--ink); }
+.index td:first-child { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+.index td:last-child { font-family: var(--f-label); font-size: 14px; letter-spacing: 0.04em; color: var(--graphite); white-space: nowrap; }
+.index a { color: var(--ink); text-decoration: none; }
+.index a:hover { color: var(--approve); text-decoration: underline; }
+
+section { margin-top: clamp(44px, 6vw, 76px); }
+.sec-h { display: flex; align-items: baseline; gap: 14px; border-bottom: 1.5px solid var(--ink); padding-bottom: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+h2 { font: 700 clamp(22px, 2.6vw, 30px)/1.1 var(--f-label); letter-spacing: 0.01em; }
+.sec-h .ref { font: 500 14px/1 var(--f-label); letter-spacing: 0.04em; color: var(--graphite); }
+
+.notes { counter-reset: note; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px 36px; }
+.notes li { counter-increment: note; display: grid; grid-template-columns: 2em 1fr; gap: 6px; max-width: 70ch; }
+.notes li::before { content: counter(note) "."; font: 700 15px/1.6 var(--f-label); color: var(--graphite); }
+
+.ecn { border: 1px solid var(--rule-strong); margin-bottom: 18px; scroll-margin-top: 20px; transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+.ecn:target { box-shadow: 0 0 0 2px var(--approve), 0 10px 28px -12px rgba(13, 110, 98, 0.45); }
+.ecn-head { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; align-items: center; border-bottom: 1px solid var(--rule-strong); }
+.ecn-id { font: 600 13px/1 var(--f-mono); padding: 12px; border-right: 1px solid var(--rule-strong); align-self: stretch; display: flex; align-items: center; }
+.ecn-title { font: 700 19px/1.2 var(--f-label); letter-spacing: 0.01em; padding: 10px 14px; }
+.ecn-title code { font-size: 0.8em; }
+.ecn-dec { font: 500 14px/1 var(--f-label); letter-spacing: 0.04em; color: var(--graphite); padding: 0 14px; white-space: nowrap; }
+.wasis { display: grid; grid-template-columns: 1fr 1fr; }
+.col { padding: 14px 16px 16px; min-width: 0; }
+.col + .col { border-left: 1px solid var(--rule-strong); }
+.col-k { display: flex; align-items: center; gap: 8px; font: 700 12px/1 var(--f-label); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
+.was .col-k { color: var(--redline); }
+.is .col-k { color: var(--approve); }
+.was { box-shadow: inset 0 3px 0 var(--redline); }
+.is { box-shadow: inset 0 3px 0 var(--approve); }
+.col p { margin: 0 0 8px; }
+.col p:last-child { margin-bottom: 0; }
+.col ul { margin: 0; padding-left: 1.1em; }
+.col li { margin-bottom: 4px; }
+.col li ul { margin-top: 4px; }
+.delta { width: 22px; height: 20px; flex: none; overflow: visible; color: var(--approve); }
+.affected { border-top: 1px dashed var(--rule-strong); padding: 10px 16px 12px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-size: 14px; }
+.affected code { font-size: 12.5px; }
+@media (max-width: 720px) {
+  .ecn-head { grid-template-columns: 1fr; }
+  .ecn-id { border-right: 0; border-bottom: 1px solid var(--rule); padding: 10px 14px; }
+  .ecn-dec { padding: 0 14px 10px; }
+  .wasis { grid-template-columns: 1fr; }
+  .col + .col { border-left: 0; border-top: 1px solid var(--rule-strong); }
+}
+
+/* Route: one continuous line in the sheet's left gutter, from the title block to the merge. */
+.spine { position: absolute; left: calc(var(--pad) / 2 - 1.5px); top: var(--spine-top, 0); height: var(--spine-h, 0); width: 3px; background: var(--approve); pointer-events: none; }
+.spine::before { content: ""; position: absolute; left: -5px; top: -6px; width: 13px; height: 13px; border-radius: 50%; background: var(--approve); }
+.route { list-style: none; margin: 0; padding: 0; position: relative; max-width: 820px; }
+.route li { position: relative; padding: 0 0 22px; }
+.route li::before { content: ""; position: absolute; left: calc(var(--pad) / -2 - 6.5px); top: 5px; width: 13px; height: 13px; border-radius: 50%; background: var(--sheet); border: 3px solid var(--approve); box-sizing: border-box; }
+.route li:last-child::before { background: var(--approve); }
+.route li.gate::after { content: ""; position: absolute; left: calc(var(--pad) / -2 - 1.5px); top: -22px; height: 26px; width: 3px; background: repeating-linear-gradient(var(--sheet) 0 5px, transparent 5px 10px); }
+.route li.gate::before { border-radius: 2px; transform: rotate(45deg); border-color: var(--redline); }
+.route li.gate .st { color: var(--redline); }
+.st { font: 700 17px/1.3 var(--f-label); letter-spacing: 0.02em; }
+.st small { font: 500 14px var(--f-label); color: var(--graphite); margin-left: 8px; letter-spacing: 0.04em; }
+.route p { margin: 2px 0 0; color: var(--ink-soft); max-width: 62ch; }
+.tracks { margin-top: 18px; }
+.tracks td:first-child { font: 600 14px var(--f-mono); white-space: nowrap; }
+
+.recipes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 26px 32px; }
+.recipe h3 { font: 700 18px/1.25 var(--f-label); letter-spacing: 0.01em; margin-bottom: 4px; }
+.recipe p { margin: 0 0 10px; color: var(--ink-soft); max-width: 62ch; }
+.cmd { position: relative; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; }
+.cmd { padding-right: 80px; }
+.cmd pre { margin: 0; padding: 12px 0 12px 14px; overflow-x: auto; line-height: 1.55; font-size: 13px; color: var(--ink); }
+.cmd .c { color: var(--graphite); }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 12px/1 var(--f-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 6px 9px; cursor: pointer; }
+.copy:hover { border-color: var(--approve); color: var(--approve); }
+.copy[data-done] { color: var(--approve); border-color: var(--approve); }
+.markers { margin-top: 30px; }
+.markers td:first-child { white-space: nowrap; }
+@media (max-width: 720px) { .markers td:first-child { white-space: normal; } .markers code { overflow-wrap: anywhere; } }
+
+.open { list-style: none; padding: 0; margin: 0; }
+.open li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); max-width: 92ch; }
+.tag { font: 700 12px/1.6 var(--f-label); letter-spacing: 0.12em; text-transform: uppercase; }
+.tag.risk { color: var(--redline); }
+.tag.verify { color: var(--approve); }
+.foot { margin-top: 48px; padding-top: 12px; border-top: 1.5px solid var(--ink); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font: 500 13px/1.4 var(--f-label); letter-spacing: 0.04em; color: var(--graphite); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } html { scroll-behavior: auto; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="delta" viewBox="0 0 22 20"><path d="M11 2 L20 18 L2 18 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><text x="11" y="15.5" text-anchor="middle" fill="currentColor" font-size="10" font-weight="700" font-family="Barlow Condensed, Arial Narrow, sans-serif">B</text></symbol>
+  </defs>
+</svg>
+
+<main class="sheet">
+  <div class="ticks" aria-hidden="true"></div>
+  <div class="zones-x top" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+  <div class="zones-x bottom" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+  <div class="zones-y left" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
+  <div class="zones-y right" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span></div>
+  <div class="spine" aria-hidden="true"></div>
+
+  <header class="head">
+    <div class="titleblock" role="group" aria-label="Cajetín del documento">
+      <div class="tb-cell span4">
+        <h1>Mejoras de orquestación hermad</h1>
+        <p class="lede">Orden de cambio de la épica de mejoras: qué hacía hermad antes, qué hace ahora, qué archivos cambiaron y cómo usarlo. Cada cambio lleva su propio número de ECN.</p>
+      </div>
+      <div class="tb-cell"><span class="tb-k">Plano n.º</span><span class="tb-v mono">HERMAD-ECN-001</span></div>
+      <div class="tb-cell"><span class="tb-k">Rev.</span><span class="tb-v mono">B</span></div>
+      <div class="tb-cell"><span class="tb-k">Fecha</span><span class="tb-v mono">2026-09-27</span></div>
+      <div class="tb-cell end"><span class="tb-k">Hoja</span><span class="tb-v mono">1 / 1</span></div>
+      <div class="tb-cell span2"><span class="tb-k">Base</span><span class="tb-v mono">5dd328c · main</span></div>
+      <div class="tb-cell span2 end"><span class="tb-k">Plan</span><span class="tb-v mono">docs/plan-mejoras.md</span></div>
+      <div class="tb-cell span2"><span class="tb-k">Verificación</span><span class="tb-v status"><span class="dot"></span>npm test · 41/41</span></div>
+      <div class="tb-cell span2 end"><span class="tb-k">Estado</span><span class="tb-v status"><span class="dot warn"></span>Aceptación en vivo pendiente</span></div>
+      <div class="tb-cell span2 last"><span class="tb-k">Revisó</span><span class="tb-v">Revisión de código</span></div>
+      <div class="tb-cell span2 last end"><span class="tb-k">Aprobó</span><span class="tb-v status"><span class="dot warn"></span>Pendiente: prueba en vivo</span></div>
+    </div>
+
+    <nav class="tablewrap" aria-label="Índice de cambios">
+      <table class="index">
+        <caption>Lista de cambios</caption>
+        <thead><tr><th scope="col">ECN</th><th scope="col">Cambio</th><th scope="col">Ref.</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td><a href="#ecn-01">Proyecto resuelto por cwd</a></td><td>Fase 1</td></tr>
+          <tr><td>02</td><td><a href="#ecn-02">Comando open-orchestrator</a></td><td>Fase 1</td></tr>
+          <tr><td>03</td><td><a href="#ecn-03">System prompt por archivo</a></td><td>D2</td></tr>
+          <tr><td>04</td><td><a href="#ecn-04">Memoria en dos capas</a></td><td>D3 D4</td></tr>
+          <tr><td>05</td><td><a href="#ecn-05">Skills por persona</a></td><td>D5</td></tr>
+          <tr><td>06</td><td><a href="#ecn-06">Daemon, buzón y rutas</a></td><td>D7 D8</td></tr>
+          <tr><td>07</td><td><a href="#ecn-07">Auto-compact al 50%</a></td><td>D6</td></tr>
+          <tr><td>08</td><td><a href="#ecn-08">Tracks y persona reader</a></td><td>D9 D11</td></tr>
+          <tr><td>09</td><td><a href="#ecn-09">Devs paralelos</a></td><td>D10</td></tr>
+          <tr><td>10</td><td><a href="#ecn-10">Sin prompts de permisos</a></td><td>—</td></tr>
+          <tr><td>11</td><td><a href="#ecn-11">Agentes en su tab</a></td><td>—</td></tr>
+          <tr><td>12</td><td><a href="#ecn-12">Prompts corregidos</a></td><td>auditoría</td></tr>
+        </tbody>
+      </table>
+    </nav>
+  </header>
+
+  <section aria-labelledby="notas">
+    <div class="sec-h"><h2 id="notas">Notas generales</h2></div>
+    <ol class="notes">
+      <li><span>Vendors de primera clase: <strong>claude</strong>, <strong>opencode</strong> y <strong>hermes</strong>. codex y gemini quedan documentados en <code>docs/vendors.md</code> con el mecanismo de respaldo.</span></li>
+      <li><span>Todo lo que hermad genera por proyecto se renderiza en cada arranque desde <code>templates/</code> y queda en el <code>.gitignore</code>. La fuente de verdad son los templates.</span></li>
+      <li><span>Lo verificado es código y tests unitarios (41/41). Nadie corrió todavía el track standard de punta a punta con herdr.</span></li>
+      <li><span>Los agentes corren sin prompts de permisos (ECN-10). Los gates de auth, dinero, DB y seguridad dependen del prompt; el sistema no los impone.</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="cambios">
+    <div class="sec-h"><h2 id="cambios">Cambios</h2><span class="ref">WAS = antes · IS = ahora</span></div>
+
+    <article class="ecn" id="ecn-01">
+      <div class="ecn-head"><span class="ecn-id">ECN-01</span><h3 class="ecn-title">Proyecto resuelto por cwd</h3><span class="ecn-dec">Fase 1</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p><code>start-team</code> y <code>orchestrate</code> leían solo <code>~/.hermad/active-project.json</code>, que es el último <code>create-project</code>. Al cambiar de proyecto había que repetir <code>create-project</code>.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><p>Suben desde el cwd buscando <code>.hermad/project.json</code> y lo marcan como activo. El global queda como respaldo, con aviso.</p><p><code>project.json</code> es autocontenido (personas y departamentos), y desde un worktree resuelve al repo principal.</p></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/project.js</code><code>src/commands/start-team.js</code><code>src/commands/orchestrate.js</code><code>src/commands/create-project.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-02">
+      <div class="ecn-head"><span class="ecn-id">ECN-02</span><h3 class="ecn-title">Comando <code>open-orchestrator</code></h3><span class="ecn-dec">Fase 1</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>No existía. <code>start-team</code> levantaba los 7 agentes de una vez, aunque la tarea necesitara dos.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><p><code>hermad open-orchestrator</code> abre el workspace con el orquestador y el pane del daemon. Los workers se crean bajo demanda con <code>hermad spawn</code> o <code>plan-devs</code>.</p></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/commands/open-orchestrator.js</code><code>src/lib/orchestrator.js</code><code>src/cli.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-03">
+      <div class="ecn-head"><span class="ecn-id">ECN-03</span><h3 class="ecn-title">System prompt por archivo</h3><span class="ecn-dec">D2 · Fase 2</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>El prompt de persona se escribía como primer mensaje visible, después de que el agente quedaba en idle, para todos los vendors, porque herdr rechaza args multilínea en <code>agent start</code>.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li>claude: <code>--append-system-prompt-file</code> más un plugin por persona.</li><li>opencode: <code>--agent hermad-&lt;persona&gt;</code>, desde <code>.opencode/agents/</code>.</li><li>hermes, codex y gemini: el mensaje inicial de antes, como respaldo.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/render.js</code><code>src/lib/vendors.js</code><code>src/lib/orchestrator.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-04">
+      <div class="ecn-head"><span class="ecn-id">ECN-04</span><h3 class="ecn-title">Memoria en dos capas</h3><span class="ecn-dec">D3 D4 · Fase 3</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Solo <code>AGENTS.md</code>, y solo lo escribía el orquestador. Claude Code lee <code>CLAUDE.md</code>, no <code>AGENTS.md</code>, así que los agentes claude no veían la memoria salvo que el prompt se lo pidiera.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li><code>CLAUDE.md</code> con <code>@AGENTS.md</code>. <code>AGENTS.md</code> sigue curado por el orquestador.</li><li>Journal append-only en <code>.hermad/memory/journal.md</code>: cualquier agente escribe con <code>hermad note</code>.</li><li>Cada agente recibe solo su parte: <code>AGENTS.md</code> más las entradas de su persona o story (<code>hermad memory slice</code>).</li><li>claude la recarga con un hook <code>SessionStart</code> al arrancar y después de compactar. opencode la lleva dentro de su <code>.md</code>.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/memory.js</code><code>src/commands/note.js</code><code>src/commands/memory.js</code><code>src/lib/render.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-05">
+      <div class="ecn-head"><span class="ecn-id">ECN-05</span><h3 class="ecn-title">Skills por persona</h3><span class="ecn-dec">D5 · Fase 4 y 8</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Todos los agentes cargaban todas las skills globales instaladas: cientos de skills y contexto gastado en cada sesión.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li>Cada template declara su lista en el frontmatter (<code>skills: [...]</code>), BMad y no BMad.</li><li>claude: <code>--setting-sources project,local</code> más el plugin de la persona.</li><li>opencode: <code>permission.skill</code> con todo denegado salvo la lista.</li><li>hermes: <code>--skills</code>.</li><li>Una skill que no existe da aviso y no aborta. Los nombres BMad están verificados contra una instalación real.</li><li><code>hermad skills suggest &lt;persona&gt;</code> propone cambios a partir de lo instalado. Nunca aplica solo.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/skills.js</code><code>src/commands/skills.js</code><code>templates/prompts/*.md</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-06">
+      <div class="ecn-head"><span class="ecn-id">ECN-06</span><h3 class="ecn-title">Daemon, buzón y rutas</h3><span class="ecn-dec">D7 D8 · Fase 5</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Los agentes se hablaban con <code>herdr agent prompt</code> a mano. Si el peer estaba <code>blocked</code>, el mensaje se perdía (<code>agent_blocked</code>). Si estaba <code>working</code>, se escribía encima de su trabajo.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li><code>hermad send &lt;peer&gt; "…"</code> deja el mensaje en <code>.hermad/inbox/&lt;peer&gt;/</code>.</li><li><code>hermad daemon</code> corre en su propio pane y entrega un mensaje por tick, solo en idle. El mensaje pasa a <code>done/</code> solo si la entrega salió bien.</li><li>Rutas por marcador <code>HERMAD:&lt;EVENTO&gt; story=&lt;id&gt; n=&lt;seq&gt;</code>. Un redibujo de la TUI no vuelve a disparar el evento.</li><li>Al tercer BUG de la misma story, escala al orquestador.</li><li>El estado vive en <code>state.json</code>, así que reiniciar el daemon no duplica ni pierde mensajes.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/daemon.js</code><code>src/commands/daemon.js</code><code>src/commands/send.js</code><code>templates/prompts/*.md</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-07">
+      <div class="ecn-head"><span class="ecn-id">ECN-07</span><h3 class="ecn-title">Auto-compact al 50%</h3><span class="ecn-dec">D6 · Fase 6</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Cada vendor compactaba cuando quería. hermes tenía el global en <code>compression.threshold: 0.3</code>, y opencode no tiene umbral configurable.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li>claude: <code>CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50</code> por agente.</li><li>hermes: umbral por profile, sin tocar la config global.</li><li>opencode: el daemon lee el % de contexto y, al pasar el 50% con el agente en idle, le envía <code>/compact</code>, con 2 minutos de espera entre envíos. Si no puede leer el %, no actúa.</li><li>El umbral se configura con <code>compactPct</code> en <code>project.json</code>.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/render.js</code><code>src/lib/daemon.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-08">
+      <div class="ecn-head"><span class="ecn-id">ECN-08</span><h3 class="ecn-title">Tracks y persona reader</h3><span class="ecn-dec">D9 D11 · Fase 7</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p><code>/hermad &lt;intent&gt;</code> mandaba el pedido a una sola persona. No había forma de escalar el flujo según el tamaño del pedido, ni un agente barato para leer el código.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li><code>/hermad:orchestrate</code> clasifica el pedido en <code>quick</code>, <code>standard</code> o <code>full</code>, y se puede forzar con <code>--track</code>.</li><li>Persona <code>reader</code> de solo lectura: mapea el código afectado y termina.</li><li>Un solo gate humano, después del plan y antes del build.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>command/orchestrate.md</code><code>templates/prompts/reader.md</code><code>templates/prompts/orquestador.md</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-09">
+      <div class="ecn-head"><span class="ecn-id">ECN-09</span><h3 class="ecn-title">Devs paralelos con <code>plan-devs</code></h3><span class="ecn-dec">D10 · Fase 7</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Un <code>dev</code> fijo en el roster. Las stories se construían de una en una y nadie decidía cuántos devs hacían falta.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li>Lee <code>stories.yaml</code> y lanza en paralelo solo stories con <code>depends_on</code> cumplido y <code>files</code> que no se pisen, contando las que ya están en curso.</li><li>Nuevos devs = <code>max_devs</code> − devs activos (<code>max_devs</code> = 3 por defecto).</li><li>Cada dev trabaja en su worktree (branch <code>hermad/&lt;story&gt;</code>) y con un nombre <code>dev-N</code> que no está en uso.</li><li>Las stories sin <code>files</code> van a una cola secuencial.</li><li><code>--max</code> inválido da error de uso.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/commands/plan-devs.js</code><code>src/lib/stories.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-10">
+      <div class="ecn-head"><span class="ecn-id">ECN-10</span><h3 class="ecn-title">Sin prompts de permisos</h3><span class="ecn-dec">ajuste posterior</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p>Los agentes se detenían en cada "¿permitir?" de herramienta. Los agentes creados por otro agente con <code>herdr agent start</code> se saltaban persona, skills y memoria.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><ul><li>Todo arranque pasa por <code>vendors.startPlan</code>, que agrega el flag de cada vendor:<ul><li>claude: <code>--permission-mode bypassPermissions</code>, más <code>skipDangerousModePermissionPrompt</code> en su settings.</li><li>opencode: <code>--auto</code>.</li><li>hermes: <code>--yolo</code>.</li></ul></li><li><code>hermad spawn</code> es el único camino para crear agentes. Los prompts ya no mencionan <code>herdr agent start</code>.</li></ul></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/vendors.js</code><code>src/commands/spawn.js</code><code>command/hermad.md</code><code>command/orchestrate.md</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-11">
+      <div class="ecn-head"><span class="ecn-id">ECN-11</span><h3 class="ecn-title">Agentes en su tab</h3><span class="ecn-dec">ajuste posterior</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><p><code>spawn</code> y <code>plan-devs</code> apilaban los agentes nuevos debajo del pane del daemon.</p></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><p>El pane se crea desde el daemon (un split seguro) y se mueve al tab del departamento de la persona, respetando la grilla 4×2 cuando herdr lo permite.</p><p>Si falla cualquier paso, el agente arranca igual junto al daemon.</p></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>src/lib/placement.js</code><code>src/lib/herdr.js</code><code>src/commands/spawn.js</code><code>src/commands/plan-devs.js</code></div>
+    </article>
+
+    <article class="ecn" id="ecn-12">
+      <div class="ecn-head"><span class="ecn-id">ECN-12</span><h3 class="ecn-title">Prompts corregidos</h3><span class="ecn-dec">auditoría de prompts</span></div>
+      <div class="wasis">
+        <div class="col was"><span class="col-k">Was</span><ul><li>Los docs decían que claude recibía la persona con <code>--append-system-prompt</code>, algo que herdr impide.</li><li>La nota "este archivo es la plantilla" se copiaba a cada proyecto.</li><li>La ruta de <code>/hermad</code> en <code>SKILL.md</code> estaba mal, y faltaba el reviewer.</li></ul></div>
+        <div class="col is"><span class="col-k"><svg class="delta" aria-hidden="true"><use href="#delta"/></svg>Is</span><p>Cada afirmación coincide con el código actual. La plantilla ya no trae la nota, y <code>SKILL.md</code> incluye al reviewer y la ruta real de instalación.</p></div>
+      </div>
+      <div class="affected"><span class="tb-k">Afecta</span><code>skill/SKILL.md</code><code>AGENTS.md</code><code>templates/AGENTS-template.md</code></div>
+    </article>
+  </section>
+
+  <section aria-labelledby="flujo">
+    <div class="sec-h"><h2 id="flujo">Flujo de una mejora</h2><span class="ref">track standard</span></div>
+    <ol class="route">
+      <li><div class="st">Intent<small>/hermad:orchestrate</small></div><p>El orquestador clasifica el pedido y anuncia en una línea el track y la razón.</p></li>
+      <li><div class="st">Reader<small>solo lectura</small></div><p>Mapea archivos, flujos y puntos de impacto en <code>.hermad/memory/reader-&lt;id&gt;.md</code> y termina.</p></li>
+      <li><div class="st">Architect</div><p>Recibe solo el mapa y define la arquitectura con decisiones mínimas.</p></li>
+      <li><div class="st">PM<small>SPEC.md · stories.yaml</small></div><p>Divide en stories con <code>id</code>, <code>depends_on</code>, <code>files</code> y <code>ac</code>, y emite <code>HERMAD:STORIES_READY</code>.</p></li>
+      <li class="gate"><div class="st">Gate humano<small>único</small></div><p>Recibes <code>SPEC.md</code>, <code>stories.yaml</code> y el número de devs calculado. Nada se construye sin tu sí.</p></li>
+      <li><div class="st">plan-devs<small>worktrees</small></div><p>Lanza <code>dev-1…N</code>, cada uno en su branch, dentro del tab desarrollo.</p></li>
+      <li><div class="st">Devs → Reviewer<small>rutas del daemon</small></div><p><code>HERMAD:DONE</code> del dev va al reviewer, y <code>HERMAD:BUG</code> vuelve al dev dueño de la story. Al tercer rebote escala al orquestador.</p></li>
+      <li><div class="st">Merge</div><p>El <code>DONE</code> del reviewer cierra la story, libera a las que dependían de ella y le avisa al orquestador que mergee. Un conflicto pasa por el gate humano.</p></li>
+    </ol>
+    <div class="tablewrap tracks">
+      <table>
+        <thead><tr><th scope="col">Track</th><th scope="col">Cuándo</th><th scope="col">Recorrido</th></tr></thead>
+        <tbody>
+          <tr><td>quick</td><td>bug o ajuste de 1–2 archivos</td><td>reader → dev → reviewer · sin gate</td></tr>
+          <tr><td>standard</td><td>mejora o feature sobre código existente</td><td>el recorrido de arriba</td></tr>
+          <tr><td>full</td><td>producto o módulo nuevo</td><td>analyst → pm (brief/PRD) → architect → ux (si hay UI) → pm (stories) → devs → reviewer → retro</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="uso">
+    <div class="sec-h"><h2 id="uso">Formas de uso sugeridas</h2></div>
+    <div class="recipes">
+      <div class="recipe">
+        <h3>Proyecto nuevo</h3>
+        <p>Instala la skill y los comandos, crea el proyecto con BMad y abre solo el orquestador.</p>
+        <div class="cmd"><pre><code>hermad setup
+hermad create-project mi-app --run-bmad-install
+cd mi-app && hermad open-orchestrator</code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Volver a un proyecto existente</h3>
+        <p>No hace falta repetir <code>create-project</code>: hermad encuentra el proyecto desde el cwd.</p>
+        <div class="cmd"><pre><code>cd ~/proyectos/mi-app
+hermad open-orchestrator   <span class="c"># liviano, workers bajo demanda</span>
+hermad start-team          <span class="c"># o el equipo completo</span></code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Una mejora de backend</h3>
+        <p>Dentro del pane del orquestador. Corre el track standard y se detiene una vez, en el gate.</p>
+        <div class="cmd"><pre><code>/hermad:orchestrate "implementemos rate limiting en la API"</code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Un bug puntual</h3>
+        <p>Forzar el track quick evita el architect, el pm y el gate.</p>
+        <div class="cmd"><pre><code>/hermad:orchestrate --track quick "el login falla con emails en mayúsculas"</code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Hablar con otro agente o dejar memoria</h3>
+        <p>Desde cualquier agente. El mensaje espera en el buzón hasta que el peer quede en idle.</p>
+        <div class="cmd"><pre><code>hermad send reviewer "S2 lista, ojo con el caso vacío" --from dev
+hermad note "usamos token bucket, no ventana fija" --story S2
+hermad memory slice dev    <span class="c"># qué ve el dev ahora</span></code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Sumar capacidad</h3>
+        <p>Crea un agente con persona, skills, memoria y sin prompts de permisos, o recalcula los devs paralelos.</p>
+        <div class="cmd"><pre><code>hermad spawn ux
+hermad spawn dev --name dev-4
+hermad plan-devs --max 2</code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+      <div class="recipe">
+        <h3>Ajustar skills o modelos</h3>
+        <p><code>suggest</code> propone cambios a la lista del template. <code>settings</code> actualiza el <code>project.json</code> del proyecto.</p>
+        <div class="cmd"><pre><code>hermad skills suggest reviewer
+hermad settings agents dev</code></pre><button class="copy" type="button">Copiar</button></div>
+      </div>
+    </div>
+
+    <div class="tablewrap markers">
+      <table>
+        <caption>Marcadores que leen las rutas</caption>
+        <thead><tr><th scope="col">Línea exacta</th><th scope="col">Quién la emite</th><th scope="col">Efecto</th></tr></thead>
+        <tbody>
+          <tr><td><code>HERMAD:DONE story=S1 n=1</code></td><td>dev</td><td>tarea al reviewer</td></tr>
+          <tr><td><code>HERMAD:BUG story=S1 n=1</code></td><td>reviewer</td><td>vuelve al dev dueño; al 3.º, al orquestador</td></tr>
+          <tr><td><code>HERMAD:DONE story=S1 n=1</code></td><td>reviewer</td><td>cierra la story, libera dependencias y dispara el merge</td></tr>
+          <tr><td><code>HERMAD:STORIES_READY story=E1 n=1</code></td><td>pm</td><td>aviso al orquestador para el gate</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="abiertos">
+    <div class="sec-h"><h2 id="abiertos">Pendientes</h2></div>
+    <ul class="open">
+      <li><span class="tag verify">Verificar</span><span>Prueba en vivo con herdr del track standard: reader → architect → pm → <code>plan-devs</code> con 2 devs en worktrees → reviewer → merge.</span></li>
+      <li><span class="tag verify">Hecho</span><span>Probado en vivo el 2026-09-27: claude con <code>bypassPermissions</code> respeta los deny. El reader no puede escribir y una skill fuera de la lista queda bloqueada, lo mismo en opencode. Las skills del proyecto negadas siguen apareciendo en la lista de claude, aunque no se pueden usar.</span></li>
+      <li><span class="tag verify">Verificar</span><span>Que <code>skipDangerousModePermissionPrompt</code> por <code>--settings</code> evite el diálogo del modo bypass. Si no, el agente queda <code>blocked</code> al arrancar.</span></li>
+      <li><span class="tag risk">Riesgo</span><span>Los agentes ejecutan cualquier comando sin preguntar. Usa hermad en repos donde un comando destructivo se pueda recuperar.</span></li>
+      <li><span class="tag risk">Límite</span><span>El journal de opencode es una foto al arrancar: sin hooks, no se refresca después de compactar.</span></li>
+      <li><span class="tag risk">Límite</span><span>La grilla depende del orden que devuelve <code>pane list</code>. Si no coincide con el orden visual, el agente queda en el tab correcto pero en otra posición.</span></li>
+    </ul>
+  </section>
+
+  <footer class="foot"><span>HERMAD-ECN-001 · rev B</span><span>Fuentes: docs/plan-mejoras.md · docs/vendors.md · AGENTS.md</span></footer>
+</main>
+
+<script>
+(function () {
+  var sheet = document.querySelector(".sheet"), head = document.querySelector(".head"), last = document.querySelector(".route li:last-child");
+  function size() {
+    var top = head.offsetTop + 10, end = last.offsetTop + last.parentElement.offsetTop + 11;
+    sheet.style.setProperty("--spine-top", top + "px");
+    sheet.style.setProperty("--spine-h", Math.max(0, end - top) + "px");
+  }
+  size(); addEventListener("resize", size); addEventListener("load", size);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+})();
+document.querySelectorAll(".copy").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var pre = btn.parentElement.querySelector("pre");
+    var text = pre.innerText.replace(/\s+#.*$/gm, "").trim();
+    function done() { btn.textContent = "Copiado"; btn.setAttribute("data-done", ""); setTimeout(function () { btn.textContent = "Copiar"; btn.removeAttribute("data-done"); }, 1600); }
+    function fallback() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Seleccionado"; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  });
+});
+</script>

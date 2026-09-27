@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T17:53:34.868246+00:00",
+  "title": "Design System: hermad",
+  "extensions": {
+    "colorMeta": {
+      "vellum": {
+        "role": "neutral",
+        "displayName": "Vellum",
+        "canonical": "oklch(95.9% 0.006 239.8)",
+        "tonalRamp": [
+          "#090c0d",
+          "#232528",
+          "#3f4245",
+          "#5e6264",
+          "#7f8385",
+          "#a2a6a8",
+          "#c6cacd",
+          "#ebeff2"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "canonical": "oklch(98.1% 0.003 247.9)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#242527",
+          "#414244",
+          "#606163",
+          "#818284",
+          "#a3a5a7",
+          "#c7c9cb",
+          "#edeff1"
+        ]
+      },
+      "drafting-ink": {
+        "role": "neutral",
+        "displayName": "Drafting Ink",
+        "canonical": "oklch(28.5% 0.052 260.9)",
+        "tonalRamp": [
+          "#010a21",
+          "#16253e",
+          "#32425e",
+          "#50627f",
+          "#7183a2",
+          "#93a6c6",
+          "#b6caec",
+          "#dbf0ff"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "canonical": "oklch(41.8% 0.050 260.7)",
+        "tonalRamp": [
+          "#020a20",
+          "#17253d",
+          "#33425d",
+          "#51627e",
+          "#7183a1",
+          "#93a6c5",
+          "#b7caea",
+          "#dcf0ff"
+        ]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Pencil Graphite",
+        "canonical": "oklch(53.4% 0.039 257.9)",
+        "tonalRamp": [
+          "#030b1b",
+          "#192538",
+          "#354357",
+          "#546278",
+          "#74839a",
+          "#96a6be",
+          "#bacbe3",
+          "#dff0ff"
+        ]
+      },
+      "pencil-rule": {
+        "role": "neutral",
+        "displayName": "Pencil Rule",
+        "canonical": "oklch(81.6% 0.023 254.4)",
+        "tonalRamp": [
+          "#050c15",
+          "#1d2630",
+          "#3a434e",
+          "#58626e",
+          "#798390",
+          "#9ba6b4",
+          "#bfcad8",
+          "#e4f0fe"
+        ]
+      },
+      "pencil-rule-strong": {
+        "role": "neutral",
+        "displayName": "Pencil Rule Strong",
+        "canonical": "oklch(66.8% 0.036 256.8)",
+        "tonalRamp": [
+          "#030b1a",
+          "#1a2636",
+          "#364355",
+          "#546276",
+          "#758498",
+          "#97a6bc",
+          "#bbcbe1",
+          "#e0f0ff"
+        ]
+      },
+      "redline": {
+        "role": "secondary",
+        "displayName": "Redline",
+        "canonical": "oklch(52.1% 0.174 31.3)",
+        "tonalRamp": [
+          "#2d0000",
+          "#510000",
+          "#752014",
+          "#994234",
+          "#bf6454",
+          "#e68776",
+          "#ffab99",
+          "#ffd0bd"
+        ]
+      },
+      "redline-wash": {
+        "role": "neutral",
+        "displayName": "Redline Wash",
+        "canonical": "oklch(93.0% 0.022 31.8)",
+        "tonalRamp": [
+          "#130806",
+          "#2f211f",
+          "#4d3e3b",
+          "#6d5d5a",
+          "#8f7e7a",
+          "#b2a09d",
+          "#d7c4c0",
+          "#fdeae6"
+        ]
+      },
+      "approval": {
+        "role": "primary",
+        "displayName": "Approval Green-Cyan",
+        "canonical": "oklch(48.4% 0.084 181.6)",
+        "tonalRamp": [
+          "#00140e",
+          "#003128",
+          "#005045",
+          "#127064",
+          "#3f9386",
+          "#64b6a8",
+          "#89dbcd",
+          "#aefff2"
+        ]
+      },
+      "approval-wash": {
+        "role": "neutral",
+        "displayName": "Approval Wash",
+        "canonical": "oklch(93.7% 0.021 181.9)",
+        "tonalRamp": [
+          "#020e0c",
+          "#1a2826",
+          "#364643",
+          "#556562",
+          "#758783",
+          "#98aaa6",
+          "#bbceca",
+          "#e0f3ef"
+        ]
+      },
+      "code-ground": {
+        "role": "neutral",
+        "displayName": "Code Ground",
+        "canonical": "oklch(93.1% 0.011 252.1)",
+        "tonalRamp": [
+          "#080c10",
+          "#21262b",
+          "#3e4248",
+          "#5d6268",
+          "#7d8389",
+          "#a0a6ac",
+          "#c4cad1",
+          "#e9eff6"
+        ]
+      },
+      "vellum-dark": {
+        "role": "neutral",
+        "displayName": "Vellum (dark)",
+        "canonical": "oklch(24.4% 0.054 252.6)",
+        "tonalRamp": [
+          "#000b21",
+          "#10263e",
+          "#2d445e",
+          "#4b637f",
+          "#6b85a2",
+          "#8da8c7",
+          "#b1ccec",
+          "#d5f2ff"
+        ]
+      },
+      "sheet-dark": {
+        "role": "neutral",
+        "displayName": "Sheet (dark)",
+        "canonical": "oklch(28.1% 0.063 252.4)",
+        "tonalRamp": [
+          "#000a24",
+          "#0b2642",
+          "#284463",
+          "#476384",
+          "#6785a8",
+          "#89a8cc",
+          "#acccf2",
+          "#d1f2ff"
+        ]
+      },
+      "drafting-ink-dark": {
+        "role": "neutral",
+        "displayName": "Drafting Ink (dark)",
+        "canonical": "oklch(94.2% 0.017 250.8)",
+        "tonalRamp": [
+          "#060c12",
+          "#1f262d",
+          "#3c434b",
+          "#5a626b",
+          "#7b838c",
+          "#9ea6af",
+          "#c1cad4",
+          "#e7f0fa"
+        ]
+      },
+      "ink-soft-dark": {
+        "role": "neutral",
+        "displayName": "Ink Soft (dark)",
+        "canonical": "oklch(85.1% 0.032 251.2)",
+        "tonalRamp": [
+          "#020c18",
+          "#192634",
+          "#354353",
+          "#546373",
+          "#748496",
+          "#97a7b9",
+          "#bacbde",
+          "#dff1ff"
+        ]
+      },
+      "graphite-dark": {
+        "role": "neutral",
+        "displayName": "Pencil Graphite (dark)",
+        "canonical": "oklch(72.7% 0.045 252.7)",
+        "tonalRamp": [
+          "#000b1d",
+          "#14263a",
+          "#31445a",
+          "#4f637b",
+          "#6f849d",
+          "#91a7c1",
+          "#b5cce7",
+          "#daf1ff"
+        ]
+      },
+      "pencil-rule-dark": {
+        "role": "neutral",
+        "displayName": "Pencil Rule (dark)",
+        "canonical": "oklch(40.2% 0.072 251.9)",
+        "tonalRamp": [
+          "#000928",
+          "#042647",
+          "#234467",
+          "#426489",
+          "#6285ad",
+          "#84a8d2",
+          "#a7cdf8",
+          "#ccf3ff"
+        ]
+      },
+      "pencil-rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Pencil Rule Strong (dark)",
+        "canonical": "oklch(52.5% 0.074 251.9)",
+        "tonalRamp": [
+          "#000929",
+          "#032647",
+          "#224468",
+          "#41648a",
+          "#6185ae",
+          "#83a9d3",
+          "#a7cdf9",
+          "#cbf3ff"
+        ]
+      },
+      "redline-dark": {
+        "role": "secondary",
+        "displayName": "Redline (dark)",
+        "canonical": "oklch(75.8% 0.145 30.0)",
+        "tonalRamp": [
+          "#2d0000",
+          "#510000",
+          "#752016",
+          "#9a4236",
+          "#bf6456",
+          "#e68778",
+          "#ffab9a",
+          "#ffd0bf"
+        ]
+      },
+      "redline-wash-dark": {
+        "role": "neutral",
+        "displayName": "Redline Wash (dark)",
+        "canonical": "oklch(29.5% 0.036 346.8)",
+        "tonalRamp": [
+          "#16050e",
+          "#321e28",
+          "#513a46",
+          "#715965",
+          "#937a87",
+          "#b79ca9",
+          "#dcc0ce",
+          "#ffe5f3"
+        ]
+      },
+      "approval-dark": {
+        "role": "primary",
+        "displayName": "Approval Green-Cyan (dark)",
+        "canonical": "oklch(80.3% 0.110 180.4)",
+        "tonalRamp": [
+          "#00160d",
+          "#003428",
+          "#005345",
+          "#007564",
+          "#029785",
+          "#44bba8",
+          "#6de1cc",
+          "#95fff2"
+        ]
+      },
+      "approval-wash-dark": {
+        "role": "neutral",
+        "displayName": "Approval Wash (dark)",
+        "canonical": "oklch(34.0% 0.049 207.6)",
+        "tonalRamp": [
+          "#001016",
+          "#002b31",
+          "#1e494f",
+          "#3e6970",
+          "#5f8b91",
+          "#81aeb5",
+          "#a5d3da",
+          "#c9f8ff"
+        ]
+      },
+      "code-ground-dark": {
+        "role": "neutral",
+        "displayName": "Code Ground (dark)",
+        "canonical": "oklch(23.9% 0.051 250.8)",
+        "tonalRamp": [
+          "#000b1f",
+          "#10263d",
+          "#2d445c",
+          "#4c647d",
+          "#6c85a0",
+          "#8ea8c4",
+          "#b1ccea",
+          "#d6f2ff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Document title in the title block."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings over a 1.5px ink rule."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "ECN titles, recipe headings, route stations."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All reading prose."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase field keys, table headers, WAS/IS markers, tags, controls."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Commands, paths, identifiers, ECN ids, drawing numbers."
+      }
+    },
+    "fontLoading": {
+      "source": "Google Fonts (fonts.googleapis.com, display=swap)",
+      "selfHosted": false,
+      "status": "open: self-hosting not yet decided by the user"
+    },
+    "shadows": [
+      {
+        "name": "column-rule",
+        "value": "inset 0 3px 0 var(--redline) | inset 0 3px 0 var(--approve)",
+        "purpose": "Colored top edge of WAS and IS columns."
+      },
+      {
+        "name": "target-halo",
+        "value": "0 0 0 2px var(--approve), 0 10px 28px -12px rgba(13, 110, 98, 0.45)",
+        "purpose": "ECN record reached by anchor link."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Target halo easing, 0.6s."
+      },
+      {
+        "name": "copy-feedback",
+        "value": "1600ms",
+        "purpose": "Copy button 'Copiado' state duration."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none; scroll-behavior: auto",
+        "purpose": "Applied under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "header-stack",
+        "value": "900px"
+      },
+      {
+        "name": "sheet-compact",
+        "value": "720px"
+      },
+      {
+        "name": "titleblock-2col",
+        "value": "520px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Title Block",
+      "kind": "custom",
+      "refersTo": "title-block-cell",
+      "description": "Document metadata grid: uppercase keys over values, ink border, pencil dividers.",
+      "html": "<div class=\"ds-tb\"><div class=\"ds-tb-cell ds-span4\"><span class=\"ds-tb-v ds-h1\">Mejoras de orquestación hermad</span></div><div class=\"ds-tb-cell\"><span class=\"ds-tb-k\">Plano n.º</span><span class=\"ds-tb-v ds-mono\">HERMAD-ECN-001</span></div><div class=\"ds-tb-cell\"><span class=\"ds-tb-k\">Rev.</span><span class=\"ds-tb-v ds-mono\">B</span></div><div class=\"ds-tb-cell ds-span2 ds-end\"><span class=\"ds-tb-k\">Estado</span><span class=\"ds-tb-v\"><span class=\"ds-dot ds-warn\"></span>Aceptación en vivo pendiente</span></div></div>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-tb{border:1.5px solid var(--ink);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--sheet);color:var(--ink);font-family:var(--f-body)}.ds-tb-cell{border-right:1px solid var(--rule-strong);border-bottom:1px solid var(--rule-strong);padding:8px 10px 10px;min-width:0}.ds-span4{grid-column:span 4;border-right:0}.ds-span2{grid-column:span 2}.ds-end{border-right:0}.ds-tb-k{display:block;font:600 11px/1.2 var(--f-label);letter-spacing:.1em;text-transform:uppercase;color:var(--graphite)}.ds-tb-v{display:flex;align-items:center;gap:8px;font:600 15px/1.35 var(--f-label);letter-spacing:.02em;margin-top:3px}.ds-mono{font-family:var(--f-mono);font-size:13.5px}.ds-h1{font:700 32px/1.02 var(--f-label);letter-spacing:-.01em}.ds-dot{width:8px;height:8px;border-radius:50%;background:var(--approve)}.ds-warn{background:var(--redline)}"
+    },
+    {
+      "name": "ECN Record",
+      "kind": "card",
+      "refersTo": "ecn-record",
+      "description": "One change: id, title, decision ref, WAS/IS columns, affected files.",
+      "html": "<article class=\"ds-ecn\" tabindex=\"0\"><div class=\"ds-ecn-head\"><span class=\"ds-ecn-id\">ECN-01</span><span class=\"ds-ecn-title\">Proyecto resuelto por cwd</span><span class=\"ds-ecn-dec\">Fase 1</span></div><div class=\"ds-wasis\"><div class=\"ds-col ds-was\"><span class=\"ds-col-k\">Was</span><p>Leían solo el proyecto activo global.</p></div><div class=\"ds-col ds-is\"><span class=\"ds-col-k\"><svg class=\"ds-delta\" viewBox=\"0 0 22 20\" aria-hidden=\"true\"><path d=\"M11 2 L20 18 L2 18 Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><text x=\"11\" y=\"15.5\" text-anchor=\"middle\" fill=\"currentColor\" font-size=\"10\" font-weight=\"700\">B</text></svg>Is</span><p>Suben desde el cwd buscando <code>.hermad/project.json</code>.</p></div></div><div class=\"ds-affected\"><span class=\"ds-k\">Afecta</span><code>src/lib/project.js</code><code>src/cli.js</code></div></article>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-ecn{border:1px solid var(--rule-strong);background:var(--sheet);color:var(--ink);font:400 16px/1.6 var(--f-body);transition:box-shadow .6s cubic-bezier(.16,1,.3,1)}.ds-ecn:focus-visible,.ds-ecn:hover{outline:none;box-shadow:0 0 0 2px var(--approve),0 10px 28px -12px rgba(13,110,98,.45)}.ds-ecn-head{display:grid;grid-template-columns:7.5rem minmax(0,1fr) auto;align-items:center;border-bottom:1px solid var(--rule-strong)}.ds-ecn-id{font:600 13px/1 var(--f-mono);padding:12px;border-right:1px solid var(--rule-strong);align-self:stretch;display:flex;align-items:center}.ds-ecn-title{font:700 19px/1.2 var(--f-label);letter-spacing:.01em;padding:10px 14px}.ds-ecn-dec{font:500 14px/1 var(--f-label);letter-spacing:.04em;color:var(--graphite);padding:0 14px;white-space:nowrap}.ds-wasis{display:grid;grid-template-columns:1fr 1fr}.ds-col{padding:14px 16px 16px;min-width:0}.ds-col+.ds-col{border-left:1px solid var(--rule-strong)}.ds-col p{margin:0}.ds-col-k{display:flex;align-items:center;gap:8px;font:700 12px/1 var(--f-label);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}.ds-was .ds-col-k{color:var(--redline)}.ds-is .ds-col-k{color:var(--approve)}.ds-was{box-shadow:inset 0 3px 0 var(--redline)}.ds-is{box-shadow:inset 0 3px 0 var(--approve)}.ds-delta{width:22px;height:20px;overflow:visible;color:var(--approve);font-family:var(--f-label)}.ds-affected{border-top:1px dashed var(--rule-strong);padding:10px 16px 12px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:14px}.ds-k{font:600 11px/1.2 var(--f-label);letter-spacing:.1em;text-transform:uppercase;color:var(--graphite)}.ds-ecn code{font:12.5px var(--f-mono);background:var(--code-bg);padding:.08em .35em;border-radius:3px}"
+    },
+    {
+      "name": "Route Line",
+      "kind": "custom",
+      "refersTo": "route-node",
+      "description": "Continuous approval line through stations; human gate as redline diamond on a dashed break.",
+      "html": "<ol class=\"ds-route\"><li><div class=\"ds-st\">PM<small>stories.yaml</small></div><p>Divide en stories.</p></li><li class=\"ds-gate\"><div class=\"ds-st\">Gate humano<small>único</small></div><p>Nada se construye sin tu sí.</p></li><li><div class=\"ds-st\">Merge</div><p>Cierra la story.</p></li></ol>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-route{list-style:none;margin:0;padding:0 0 0 34px;position:relative;background:var(--sheet);color:var(--ink);font:400 16px/1.6 var(--f-body)}.ds-route::before{content:'';position:absolute;left:10.5px;top:6px;bottom:28px;width:3px;background:var(--approve)}.ds-route li{position:relative;padding:0 0 22px}.ds-route li::before{content:'';position:absolute;left:-30px;top:5px;width:13px;height:13px;border-radius:50%;background:var(--sheet);border:3px solid var(--approve);box-sizing:border-box}.ds-route li:last-child::before{background:var(--approve)}.ds-route li.ds-gate::after{content:'';position:absolute;left:-25px;top:-22px;height:26px;width:3px;background:repeating-linear-gradient(var(--sheet) 0 5px,transparent 5px 10px)}.ds-route li.ds-gate::before{border-radius:2px;transform:rotate(45deg);border-color:var(--redline)}.ds-gate .ds-st{color:var(--redline)}.ds-st{font:700 17px/1.3 var(--f-label);letter-spacing:.02em}.ds-st small{font:500 14px var(--f-label);color:var(--graphite);margin-left:8px;letter-spacing:.04em}.ds-route p{margin:2px 0 0;color:var(--ink-soft)}"
+    },
+    {
+      "name": "Command Block",
+      "kind": "custom",
+      "refersTo": "command-block",
+      "description": "Copyable mono commands with graphite comments.",
+      "html": "<div class=\"ds-cmd\"><pre><code>hermad open-orchestrator   <span class=\"ds-c\"># liviano</span>\nhermad start-team</code></pre><button class=\"ds-copy\" type=\"button\">Copiar</button></div>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-cmd{position:relative;background:var(--code-bg);border:1px solid var(--rule);border-radius:4px;padding-right:80px}.ds-cmd pre{margin:0;padding:12px 0 12px 14px;overflow-x:auto;font:13px/1.55 var(--f-mono);color:var(--ink)}.ds-c{color:var(--graphite)}.ds-copy{position:absolute;top:8px;right:8px;font:600 12px/1 var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:var(--sheet);border:1px solid var(--rule-strong);border-radius:3px;padding:6px 9px;cursor:pointer}.ds-copy:hover{border-color:var(--approve);color:var(--approve)}.ds-copy:focus-visible{outline:2px solid var(--approve);outline-offset:2px}"
+    },
+    {
+      "name": "Copy Button",
+      "kind": "button",
+      "refersTo": "copy-button",
+      "description": "The only button: small uppercase label control, approval on hover and done.",
+      "html": "<button class=\"ds-copy\" type=\"button\">Copiar</button>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-copy{font:600 12px/1 var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:var(--sheet);border:1px solid var(--rule-strong);border-radius:3px;padding:6px 9px;cursor:pointer}.ds-copy:hover,.ds-copy:active{border-color:var(--approve);color:var(--approve)}.ds-copy:focus-visible{outline:2px solid var(--approve);outline-offset:2px}"
+    },
+    {
+      "name": "Index Table",
+      "kind": "nav",
+      "refersTo": "table-header",
+      "description": "Change index: mono ids, ink links turning approval on hover, graphite refs.",
+      "html": "<table class=\"ds-t\"><caption>Lista de cambios</caption><thead><tr><th>ECN</th><th>Cambio</th><th>Ref.</th></tr></thead><tbody><tr><td class=\"ds-id\">01</td><td><a href=\"#\">Proyecto resuelto por cwd</a></td><td class=\"ds-ref\">Fase 1</td></tr><tr><td class=\"ds-id\">06</td><td><a href=\"#\">Daemon, buzón y rutas</a></td><td class=\"ds-ref\">D7 D8</td></tr></tbody></table>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-t{border-collapse:collapse;width:100%;font:400 16px/1.6 var(--f-body);color:var(--ink);background:var(--sheet);font-variant-numeric:tabular-nums}.ds-t caption{text-align:left;font:700 13px/1 var(--f-label);letter-spacing:.12em;text-transform:uppercase;padding-bottom:10px}.ds-t th,.ds-t td{border-bottom:1px solid var(--rule);padding:7px 10px;text-align:left}.ds-t th{font:600 11px/1.2 var(--f-label);letter-spacing:.1em;text-transform:uppercase;color:var(--graphite);border-bottom:1.5px solid var(--ink)}.ds-id{font:13px var(--f-mono)}.ds-ref{font:14px var(--f-label);letter-spacing:.04em;color:var(--graphite)}.ds-t a{color:var(--ink);text-decoration:none}.ds-t a:hover{color:var(--approve);text-decoration:underline}.ds-t a:focus-visible{outline:2px solid var(--approve);outline-offset:2px}"
+    },
+    {
+      "name": "Tag",
+      "kind": "chip",
+      "refersTo": "ecn-was-label",
+      "description": "Uppercase open-item tags: approval for verify, redline for risk and limit.",
+      "html": "<span class=\"ds-tag ds-verify\">Verificar</span> <span class=\"ds-tag ds-risk\">Riesgo</span>",
+      "css": ":host{--paper:#eef2f5;--sheet:#f7f9fb;--ink:#1b2a44;--ink-soft:#3d4d68;--graphite:#5f6e84;--rule:#b9c4d2;--rule-strong:#8796ab;--redline:#b8321f;--approve:#0d6e62;--code-bg:#e3e9f0;--f-label:'Barlow Condensed','Arial Narrow',sans-serif;--f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;}.ds-tag{font:700 12px/1.6 var(--f-label);letter-spacing:.12em;text-transform:uppercase}.ds-verify{color:var(--approve)}.ds-risk{color:var(--redline)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Drafting Office",
+    "overview": "hermad's documentation is issued like an engineering drawing, not published like a blog. Every page is a single bordered sheet laid on a vellum ground, with a title block for its metadata (drawing number, revision, date, sheet count, reviewed and approved), margin zone letters and tick marks, and change records that read as Engineering Change Notices: a numbered line, a WAS column in redline, an IS column in approval green-cyan, and a dashed \"affected\" strip listing the real files touched.\n\nThe density is that of a technical document for people who already know the tools: tables, hairlines, and short labelled fields, never cards or feature grids. Color carries meaning, not decoration. Redline marks what was replaced, what is at risk, or where a human must stop; approval marks what is current, verified, or on the working route. Everything else is drafting ink and pencil graphite on paper.\n\nThe dark theme is not an inverted page but a blueprint: deep navy paper, pale ink, a lighter redline and a brighter cyan. Both themes are first-class and follow `prefers-color-scheme`, with a `data-theme` override on the root.",
+    "keyCharacteristics": [
+      "One bordered sheet per page, with a double frame (1.5px ink border plus a 1px pencil outline offset 6px), margin zone letters and tick marks.",
+      "A title block grid for document metadata instead of a hero.",
+      "Change records as WAS / IS pairs with an affected-files strip.",
+      "A single continuous route line in the sheet's left gutter; human gates break it with dashes and a redline diamond.",
+      "Condensed technical sans for every label and heading, a humanist sans for reading, mono for anything a user types.",
+      "Square corners on every structural element; radius only on code and the copy control."
+    ],
+    "rules": [
+      {
+        "name": "The Two Signals Rule",
+        "body": "Redline and approval are the only hues. Redline means replaced, at risk, or human gate; approval means current, verified, or on route. Never use either for decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blueprint Rule",
+        "body": "The dark theme swaps the full token set at once (dark-suffixed keys above), never a partial override. Signal colors lighten to stay legible on navy.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lettering Rule",
+        "body": "Every heading, label, field key and control is set in the condensed face; body prose never is.",
+        "section": "typography"
+      },
+      {
+        "name": "The Literal Rule",
+        "body": "Anything a reader could type or grep (commands, paths, identifiers, markers, drawing numbers) is set in mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Line Weight Rule",
+        "body": "Hierarchy is expressed by stroke weight and style (1.5px ink, 1px pencil, dashed), never by drop shadows or tinted cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put document metadata (drawing number, revision, date, sheet, base commit, verification, status, reviewed, approved) in a title block, with mono values for identifiers.",
+      "**Do** express each change as a numbered ECN with WAS in redline, IS in approval, and an affected strip that lists only real files.",
+      "**Do** keep hierarchy in line weight: 1.5px drafting ink for structure, 1px pencil for divisions, dashed for secondary strips.",
+      "**Do** ship both themes by swapping the whole token set, honoring `prefers-color-scheme` and a root `data-theme` override.",
+      "**Do** respect `prefers-reduced-motion` by dropping transitions and smooth scroll."
+    ],
+    "donts": [
+      "**Don't** use redline or approval as decoration; each means a state.",
+      "**Don't** round structural containers; radius is reserved for code, the copy control and route geometry.",
+      "**Don't** replace the title block with a hero or the ECN record with a bullet changelog or feature card grid.",
+      "**Don't** set body prose in the condensed face or commands and paths in anything but mono."
+    ]
+  }
+}

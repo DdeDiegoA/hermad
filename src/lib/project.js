@@ -46,7 +46,11 @@ function mainRepoRoot(dir) {
 // y lo reescribe si faltaba algo. Migración benigna: create-project viejo deja
 // solo {name, projectDir, createdAt}.
 function hydrate(project, dir) {
-  const personas = project.personas || config.load().personas;
+  // Plantilla global (incluye las personas del código) como base: agrega las que
+  // falten en un project.json viejo (p.ej. `reader`) sin pisar las del proyecto.
+  const base = config.load().personas;
+  const projectPersonas = project.personas || {};
+  const personas = { ...base, ...projectPersonas };
   const departamentos = project.departamentos || personasEnv.DEFAULT_DEPARTAMENTOS;
   const full = {
     name: project.name || path.basename(dir),
@@ -57,7 +61,11 @@ function hydrate(project, dir) {
     createdAt: project.createdAt || new Date().toISOString(),
   };
   const changed =
-    !project.personas || !project.departamentos || project.projectDir !== dir || !project.label;
+    !project.personas ||
+    !project.departamentos ||
+    project.projectDir !== dir ||
+    !project.label ||
+    Object.keys(base).some((k) => !projectPersonas[k]);
   if (changed) {
     fs.writeFileSync(path.join(dir, PROJECT_REL), JSON.stringify(full, null, 2) + "\n");
   }
@@ -65,8 +73,10 @@ function hydrate(project, dir) {
 }
 
 // Resuelve el proyecto subiendo desde cwd buscando .hermad/project.json.
-// Fallback al activo global (avisando cuál usó). Al resolver, lo marca activo.
-function resolveProject(cwd = process.cwd()) {
+// `strict` = solo esa búsqueda; si no encuentra, null (sin fallback al activo),
+// para no tocar otro proyecto por accidente con una ruta explícita.
+// Sin strict, cae al activo global (avisando cuál usó). Al resolver, lo marca activo.
+function resolveProject(cwd = process.cwd(), { strict = false } = {}) {
   let dir = path.resolve(cwd);
   while (true) {
     const file = path.join(dir, PROJECT_REL);
@@ -83,6 +93,7 @@ function resolveProject(cwd = process.cwd()) {
     dir = parent;
   }
 
+  if (strict) return null;
   const active = loadActiveProject();
   if (active) {
     console.error(`[!] sin .hermad/project.json subiendo desde ${cwd} — uso el proyecto activo global: ${active.projectDir}`);

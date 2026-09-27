@@ -13,7 +13,7 @@ Sistema para orquestar agentes de coding en paralelo: **Herdr** (terminales mult
 | `skill/` | Skill `herdr-bmad` — protocolo completo + pitfalls (instalada en Hermes + Claude Code + OpenCode vía symlink, lo hace `hermad setup`) |
 | `skill/scripts/orquestar.sh` | Bootstrap: workspace + departamentos (tabs) + agentes en grid |
 | `skill/scripts/personas.env` | Ejemplo de referencia (git-tracked, no lo toca el CLI) |
-| `~/.hermad/personas.env` | Config **activa** (la que `orquestar.sh` lee de verdad): mapeo persona→vendor/modelo + departamentos — fuera del repo a propósito, la regenera `hermad create-project` / `hermad settings agents` |
+| `~/.hermad/personas.env` | Config **activa** (la que `orquestar.sh` lee de verdad): mapeo persona→vendor/modelo + departamentos — fuera del repo a propósito, la regenera `hermad create-project` / `hermad settings project` |
 | `command/hermad.md` | Entrypoint `/hermad` (Claude Code + OpenCode) |
 | `templates/AGENTS-template.md` | Plantilla de memoria compartida (solo el orquestador la escribe) |
 | `docs/` | Guía completa |
@@ -35,9 +35,14 @@ hermad create-project "nombre"    # scaffolding agentico completo: git init, AGE
                                     # personas.env (proyecto + activo), instrucciones de BMad
 hermad create-project "nombre" --run-bmad-install   # además corre el installer de BMad (TTY)
 
-hermad settings agents            # re-define CLI/modelo de todas las personas
-hermad settings agents dev        # re-define solo una persona
-hermad settings agents --project ~/proyectos/nombre   # además sincroniza .hermad/ del proyecto
+hermad settings agents            # edita la PLANTILLA global (~/.hermad/config.json); no toca proyectos
+hermad settings agents dev        # re-define solo una persona en la plantilla global
+
+hermad settings project           # reajusta CLI/modelo del PROYECTO actual (.hermad/project.json),
+                                    #   partiendo de lo que el proyecto ya tiene
+hermad settings project dev       # solo una persona del proyecto
+hermad settings project --from-global   # copia la plantilla global al proyecto (sin prompt)
+hermad settings project --project ~/proyectos/nombre   # apunta a un proyecto explícito
 
 hermad start-team              # abre workspace+tabs por departamento+todos los agentes conectados,
                                 # SIN mandarle prompt inicial al orquestador (queda idle)

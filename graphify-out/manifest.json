@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "src/cli.js": {
-    "mtime": 1790495951.8551073,
-    "ast_hash": "2519d35e12ee8ea87d98ffd6b7991eef",
+    "mtime": 1790533056.2467468,
+    "ast_hash": "65935269bbe4f75de23276f39502f8aa",
     "semantic_hash": ""
   },
   "src/commands/create-project.js": {
@@ -35,8 +35,8 @@
     "semantic_hash": ""
   },
   "src/commands/settings-agents.js": {
-    "mtime": 1790491822.6902194,
-    "ast_hash": "74f8a7f16840887133e3ff7ebdf2c3a9",
+    "mtime": 1790533021.3312695,
+    "ast_hash": "dd1345be41b64747349e189618161421",
     "semantic_hash": ""
   },
   "src/commands/setup.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/lib/herdr.js": {
-    "mtime": 1790491259.9125721,
-    "ast_hash": "41e94797499a7a7008542466f8d80702",
+    "mtime": 1790524593.5280156,
+    "ast_hash": "a4895e683def9fa6d806233ad3c19544",
     "semantic_hash": ""
   },
   "src/lib/orchestrator.js": {
@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790491899.7350726,
-    "ast_hash": "a807f76ce63d4b5e8e2e3ec3549972ba",
+    "mtime": 1790533264.1422772,
+    "ast_hash": "6a8dad271ae795a97deabfcd4db59e1c",
     "semantic_hash": ""
   },
   "command/hermad.md": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "src/commands/plan-devs.js": {
-    "mtime": 1790495708.8394096,
-    "ast_hash": "2886ada5933bb9bc9b2f998741c44b6b",
+    "mtime": 1790524618.0184522,
+    "ast_hash": "92fd0c26774ba54d301aafb247d5f83a",
     "semantic_hash": ""
   },
   "src/commands/send.js": {
@@ -215,8 +215,8 @@
     "semantic_hash": ""
   },
   "src/commands/spawn.js": {
-    "mtime": 1790495951.6435091,
-    "ast_hash": "5bd6aea8cdf06d73e4310d9f871bb178",
+    "mtime": 1790524607.1582086,
+    "ast_hash": "09ed38d0f7aac666128ed6c0fb0294f1",
     "semantic_hash": ""
   },
   "src/lib/daemon.js": {
@@ -230,18 +230,18 @@
     "semantic_hash": ""
   },
   "src/lib/project.js": {
-    "mtime": 1790493335.1235175,
-    "ast_hash": "7fd029781d545cd5b216f5ca2175bc0e",
+    "mtime": 1790533247.6094785,
+    "ast_hash": "c3bd0d9620915d10b532c1978f6eb756",
     "semantic_hash": ""
   },
   "src/lib/render.js": {
-    "mtime": 1790495936.5075994,
-    "ast_hash": "e2367374ad0d68d9e8f6fb4d3b4b0ae9",
+    "mtime": 1790533528.5040164,
+    "ast_hash": "0c0d04d10c5b12197d892bb3511e5c0c",
     "semantic_hash": ""
   },
   "src/lib/skills.js": {
-    "mtime": 1790493034.0225017,
-    "ast_hash": "2f78783c571a0c3afcb5cfac40cf776d",
+    "mtime": 1790533528.5035322,
+    "ast_hash": "68b91d7e40602463c1232af743c2b2e6",
     "semantic_hash": ""
   },
   "src/lib/stories.js": {
@@ -270,13 +270,13 @@
     "semantic_hash": ""
   },
   "test/project.test.js": {
-    "mtime": 1790493119.119115,
-    "ast_hash": "4ca61699bf1c1e282fbe366c71db2de7",
+    "mtime": 1790533254.8888292,
+    "ast_hash": "3dc6199f5966bd82f134dabbb9225148",
     "semantic_hash": ""
   },
   "test/render.test.js": {
-    "mtime": 1790495968.535482,
-    "ast_hash": "7eb05113320e83a15144aa4d2b7cfeab",
+    "mtime": 1790533635.237862,
+    "ast_hash": "26914d27de8f6386154fdaecd437406a",
     "semantic_hash": ""
   },
   "test/stories.test.js": {
@@ -305,8 +305,78 @@
     "semantic_hash": ""
   },
   "templates/prompts/reader.md": {
-    "mtime": 1790495222.456749,
-    "ast_hash": "9d7a3af3222ea81ba48c38c679cd80cf",
+    "mtime": 1790533438.791972,
+    "ast_hash": "015ff0ed728ec4803672b1a6f1ca1217",
+    "semantic_hash": ""
+  },
+  ".impeccable/design.json": {
+    "mtime": 1790531614.868879,
+    "ast_hash": "4611cc23b714252be3f089f3298d9464",
+    "semantic_hash": ""
+  },
+  "src/commands/settings-project.js": {
+    "mtime": 1790533051.1325362,
+    "ast_hash": "44fb3fcced8b5046f175771f28961a3e",
+    "semantic_hash": ""
+  },
+  "src/lib/placement.js": {
+    "mtime": 1790524577.0218859,
+    "ast_hash": "86d0fa985f47b23eb1f04a77fa0768a5",
+    "semantic_hash": ""
+  },
+  "test/placement.test.js": {
+    "mtime": 1790524634.0292304,
+    "ast_hash": "5a7680d118c16f60da857630f2af74f1",
+    "semantic_hash": ""
+  },
+  "test/settings-agents.test.js": {
+    "mtime": 1790533065.6405113,
+    "ast_hash": "daadd55bd6cde6e4496f572d76ec8a20",
+    "semantic_hash": ""
+  },
+  "test/settings-project.test.js": {
+    "mtime": 1790533086.407822,
+    "ast_hash": "a1b9844eaf3dd76be6bd3bdf87a1eb9f",
+    "semantic_hash": ""
+  },
+  ".impeccable/surfaces/docs-cambios-hermad-html.md": {
+    "mtime": 1790530619.8715918,
+    "ast_hash": "9f06c259752ff520ce4343ef798729fb",
+    "semantic_hash": ""
+  },
+  "DESIGN.md": {
+    "mtime": 1790531614.8676083,
+    "ast_hash": "34dbc853e0cf66144c4f6043318000a4",
+    "semantic_hash": ""
+  },
+  "PRODUCT.md": {
+    "mtime": 1790530536.2657468,
+    "ast_hash": "759609a3c4cdc8e98d12a74202dbcec3",
+    "semantic_hash": ""
+  },
+  "docs/cambios-hermad.html": {
+    "mtime": 1790533635.7448502,
+    "ast_hash": "8e768f156bd67b13cb8b813f427301f3",
+    "semantic_hash": ""
+  },
+  ".impeccable/review/desktop-light.png": {
+    "mtime": 1790531314.5522594,
+    "ast_hash": "566f324617535486e6fe1a551671db3e",
+    "semantic_hash": ""
+  },
+  ".impeccable/review/desktop.png": {
+    "mtime": 1790531310.5541406,
+    "ast_hash": "cbc5ea7ee57bbb1fe3647b45beb99024",
+    "semantic_hash": ""
+  },
+  ".impeccable/review/mobile-light.png": {
+    "mtime": 1790531316.4094923,
+    "ast_hash": "57b1ebb594a60624cdbecd0c36f8e345",
+    "semantic_hash": ""
+  },
+  ".impeccable/review/mobile.png": {
+    "mtime": 1790531312.6593885,
+    "ast_hash": "cfaa8fd6d8eddad83c1f81c5d5d8c819",
     "semantic_hash": ""
   }
 }

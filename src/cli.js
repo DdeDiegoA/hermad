@@ -5,7 +5,8 @@ const HELP = `hermad — instalador y gobernador de Hermad (Herdr x BMad)
 Uso:
   hermad setup                          instala skill/comando + elige CLI/modelo por agente
   hermad create-project "nombre"        scaffolding agentico completo para un proyecto nuevo
-  hermad settings agents [persona]      re-define CLI/modelo por agente (todas o una)
+  hermad settings agents [persona]      re-define CLI/modelo por agente (config global)
+  hermad settings project [persona] [--from-global]   reajusta vendor/modelo SOLO del proyecto
   hermad start-team                     abre workspace+tabs+agentes conectados, sin prompt inicial
   hermad open-orchestrator              abre workspace solo con el orquestador (workers bajo demanda)
   hermad orchestrate "intent"           igual que start-team pero le manda el intent al orquestador

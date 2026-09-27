@@ -31,6 +31,25 @@ test("sube desde el cwd y migra el project.json a autocontenido", () => {
   assert.equal(onDisk.label, "B");
 });
 
+test("hydrate agrega personas nuevas del código (reader) sin pisar las del proyecto", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-hyd-"));
+  fs.mkdirSync(path.join(root, ".hermad"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, ".hermad", "project.json"),
+    JSON.stringify({
+      name: "H",
+      label: "H",
+      projectDir: root,
+      personas: { dev: { kind: "hermes", modelFlag: "--x", rol: "custom" } },
+      departamentos: [["desarrollo", ["dev"]]],
+    })
+  );
+  const p = resolveProject(root);
+  assert.ok(p.personas.reader, "reader (nueva en el código) se agrega");
+  assert.equal(p.personas.dev.kind, "hermes", "dev personalizado se respeta");
+  assert.equal(p.personas.dev.rol, "custom");
+});
+
 test("resuelve al repo principal desde un worktree (journal/inbox compartidos)", () => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-repo-"));
   fs.mkdirSync(path.join(repo, ".hermad"), { recursive: true });
@@ -56,6 +75,12 @@ test("cae al proyecto activo global cuando no hay project.json", () => {
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-empty-"));
   const p = resolveProject(empty);
   assert.equal(p.projectDir, "/x");
+});
+
+test("strict no cae al proyecto activo global", () => {
+  saveActiveProject({ projectDir: "/x", label: "x", personas: { orquestador: { kind: "claude", modelFlag: "", rol: "r" } }, departamentos: [] });
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-empty-strict-"));
+  assert.equal(resolveProject(empty, { strict: true }), null);
 });
 
 test("devuelve null sin project.json ni activo", () => {

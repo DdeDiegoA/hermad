@@ -122,4 +122,19 @@ function resolveAll(names, projectDir) {
   return { found, missing };
 }
 
-module.exports = { listInstalled, resolve, resolveAll, globalRoots, projectRoots };
+// Skills que claude carga del propio proyecto (`.claude/skills/`, fuente `project`):
+// --setting-sources project,local no las oculta, así que hay que negarlas una a una.
+function listProjectClaude(...dirs) {
+  const names = new Set();
+  for (const d of dirs) {
+    if (!d) continue;
+    const root = path.join(d, ".claude", "skills");
+    for (const child of safeReaddir(root)) {
+      const meta = skillMeta(path.join(root, child));
+      if (meta) names.add(meta.name);
+    }
+  }
+  return [...names].sort();
+}
+
+module.exports = { listInstalled, listProjectClaude, resolve, resolveAll, globalRoots, projectRoots };

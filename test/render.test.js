@@ -44,3 +44,16 @@ test("todo agente arranca con bypass de permisos por vendor", () => {
     for (const flag of vendors.BYPASS_ARGS[kind]) assert.ok(args.includes(flag), `${kind} sin ${flag}`);
   }
 });
+
+test("claude niega las skills del proyecto (.claude/skills) — la allowlist va por el plugin", () => {
+  const render = require("../src/lib/render");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-deny-"));
+  for (const n of ["bmad-prd", "bmad-build"]) {
+    fs.mkdirSync(path.join(dir, ".claude", "skills", n), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".claude", "skills", n, "SKILL.md"), `---\nname: ${n}\ndescription: x\n---\nbody\n`);
+  }
+  const a = render.renderPersona({ projectDir: dir, name: "dev", persona: { kind: "claude", modelFlag: "--model haiku", rol: "dev" } });
+  const deny = JSON.parse(fs.readFileSync(a.claude.settingsFile, "utf8")).permissions.deny;
+  assert.ok(deny.includes("Skill(bmad-prd)") && deny.includes("Skill(bmad-build)"), JSON.stringify(deny));
+  assert.ok(a.skillsFound.includes("bmad-build"), "bmad-build sigue permitida vía plugin");
+});
