@@ -1,5 +1,7 @@
 # Design: per-persona system prompts (English)
 
+> **SUPERADO (2026-09-27).** Implementado y extendido en las Fases 2–4 de `docs/plan-mejoras.md`: el prompt deja de inyectarse como primer mensaje y pasa a archivo por vendor (`--append-system-prompt-file` en claude, `--agent` en opencode, `SOUL.md` en hermes), con memoria de dos capas y skills por persona. Autoridad actual: `docs/vendors.md` + `src/lib/render.js`. Este doc queda como spec histórica.
+
 Design only. No code touched yet — this doc is the spec for the dev to implement.
 
 ## Problem

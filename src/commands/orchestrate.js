@@ -1,5 +1,5 @@
 "use strict";
-const { loadActiveProject } = require("../lib/active-project");
+const { resolveProject } = require("../lib/project");
 const orchestrator = require("../lib/orchestrator");
 
 // Igual que start-team pero con intent: arranca workspace + tabs + agentes Y
@@ -10,9 +10,9 @@ function run(args) {
     console.error('Uso: hermad orchestrate "intent del proyecto"');
     process.exit(1);
   }
-  const project = loadActiveProject();
+  const project = resolveProject();
   if (!project) {
-    console.error('No hay proyecto activo. Corré `hermad create-project "nombre"` primero.');
+    console.error('No hay proyecto: ni .hermad/project.json subiendo desde el cwd ni proyecto activo. Corré `hermad create-project "nombre"` primero.');
     process.exit(1);
   }
   orchestrator.bootstrap({ ...project, intent });

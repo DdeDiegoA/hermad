@@ -41,13 +41,23 @@ hermad settings agents --project ~/proyectos/nombre   # además sincroniza .herm
 
 hermad start-team              # abre workspace+tabs por departamento+todos los agentes conectados,
                                 # SIN mandarle prompt inicial al orquestador (queda idle)
+hermad open-orchestrator       # abre SOLO el orquestador (workers bajo demanda)
 hermad orchestrate "intent"    # igual que start-team, pero le manda el briefing+intent al
                                 # orquestador para que arranque a rutar la ruta épica
+
+hermad daemon                  # pane del daemon: buzón + rutas HERMAD: + compact watchdog
+hermad send <peer> "msg"       # encola un mensaje en el buzón del peer (lo entrega el daemon en idle)
+hermad note "texto" [--story S1] [--for reviewer]   # entrada al journal de memoria
+hermad memory slice <persona> [--story S1]           # bloque atómico de memoria (AGENTS.md + journal)
+hermad plan-devs [--max N]     # N worktrees+branches desde stories.yaml (evita solape de files)
+hermad skills suggest <persona>   # propone skills para el frontmatter (no aplica solo)
 
 hermad update                 # git pull del repo instalado — así se reciben updates de GitHub
 ```
 
-`start-team` y `orchestrate` requieren un proyecto activo (`hermad create-project` ya corrido) — leen `~/.hermad/active-project.json` y arman el workspace/tabs/paneles/roster **nativamente** (`src/lib/orchestrator.js`, sin shellear a bash/jq); la única diferencia entre ambos es si al final le mandan el intent al orquestador o no. Si un agente ya está vivo en otro pane (mismo nombre, otro proyecto/workspace), no se pisa: se loguea y se sigue con el resto del equipo.
+`start-team` / `orchestrate` / `open-orchestrator` **resuelven el proyecto subiendo desde el cwd** (buscan `.hermad/project.json`); si no lo encuentran, caen al activo global avisando. Así `cd proyecto-B && hermad start-team` abre B sin más. Arman el workspace/tabs/paneles/roster **nativamente** (`src/lib/orchestrator.js`). Si un agente ya está vivo en otro pane, no se pisa.
+
+Al arrancar, `render.js` genera por proyecto el prompt de cada persona y sus artefactos por vendor (`docs/vendors.md`): claude por `--append-system-prompt-file` + plugin por persona, opencode por `--agent`, hermes por `--skills`; los generados van a `.gitignore` (`.hermad/generated/`, `.opencode/agents/hermad-*`, `.hermad/worktrees/`). La memoria es de dos capas: `AGENTS.md` curado + `.hermad/memory/journal.md` append-only (`hermad note`), inyectada por persona/story.
 
 `skill/scripts/orquestar.sh` sigue existiendo como fallback para correr el bootstrap a mano sin el CLI instalado (editando `personas.env` ahí mismo) — pero `hermad` ya no lo invoca.
 

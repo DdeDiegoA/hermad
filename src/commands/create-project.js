@@ -5,6 +5,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 const config = require("../lib/config");
 const personasEnv = require("../lib/personas-env");
+const render = require("../lib/render");
 const { saveActiveProject } = require("../lib/active-project");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -45,11 +46,20 @@ function run(args) {
   fs.writeFileSync(path.join(projectDir, ".hermad", "personas.env"), rendered);
   fs.writeFileSync(
     path.join(projectDir, ".hermad", "project.json"),
-    JSON.stringify({ name, projectDir, createdAt: new Date().toISOString() }, null, 2) + "\n"
+    JSON.stringify(
+      { name, label: name, projectDir, personas: cfg.personas, departamentos: personasEnv.DEFAULT_DEPARTAMENTOS, createdAt: new Date().toISOString() },
+      null,
+      2
+    ) + "\n"
   );
   // Copia bash de referencia, por si alguien corre skill/scripts/orquestar.sh a mano.
   fs.mkdirSync(path.dirname(ACTIVE_PERSONAS_ENV), { recursive: true });
   fs.writeFileSync(ACTIVE_PERSONAS_ENV, rendered);
+
+  // Memoria claude (CLAUDE.md @AGENTS.md) + comandos + .gitignore, desde el minuto cero.
+  render.ensureClaudeMemory(projectDir);
+  render.ensureCommands(projectDir);
+  render.ensureGitignore(projectDir);
 
   // Fuente de verdad nativa: lo que leen `hermad start-team` / `hermad orchestrate`.
   saveActiveProject({ projectDir, label: name, personas: cfg.personas, departamentos: personasEnv.DEFAULT_DEPARTAMENTOS });

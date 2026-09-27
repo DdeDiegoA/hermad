@@ -1,5 +1,76 @@
 {
   "name": "hermad",
+  "label": "hermad",
   "projectDir": "/Users/diegoarenas/Programacion/proyectos/hermad",
+  "personas": {
+    "orquestador": {
+      "kind": "claude",
+      "modelFlag": "--model opus",
+      "rol": "Orquestador top — rutea + aprueba"
+    },
+    "analyst": {
+      "kind": "hermes",
+      "modelFlag": "",
+      "rol": "Mary — análisis/brainstorm"
+    },
+    "architect": {
+      "kind": "claude",
+      "modelFlag": "--model opus",
+      "rol": "Winston — arquitectura/spine"
+    },
+    "pm": {
+      "kind": "claude",
+      "modelFlag": "--model sonnet",
+      "rol": "John — producto/PRD/epics"
+    },
+    "dev": {
+      "kind": "opencode",
+      "modelFlag": "-m opencode-go/deepseek-v4.1-flash",
+      "rol": "Amelia — build"
+    },
+    "reviewer": {
+      "kind": "opencode",
+      "modelFlag": "-m opencode-go/deepseek-v4.1-flash",
+      "rol": "Revisor — code review/QA"
+    },
+    "ux": {
+      "kind": "claude",
+      "modelFlag": "--model sonnet",
+      "rol": "Sally — UX"
+    },
+    "reader": {
+      "kind": "opencode",
+      "modelFlag": "",
+      "rol": "Reader — mapa read-only del código (descartable)"
+    }
+  },
+  "departamentos": [
+    [
+      "producto",
+      [
+        "architect",
+        "pm",
+        "analyst"
+      ]
+    ],
+    [
+      "desarrollo",
+      [
+        "dev"
+      ]
+    ],
+    [
+      "qa",
+      [
+        "reviewer"
+      ]
+    ],
+    [
+      "diseno",
+      [
+        "ux"
+      ]
+    ]
+  ],
   "createdAt": "2026-09-13T23:43:47.338Z"
 }

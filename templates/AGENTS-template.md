@@ -1,8 +1,6 @@
 # AGENTS.md — contexto compartido del proyecto
 
 > Memoria interna. TODOS los agentes leen esto al arrancar. **Solo el orquestador lo escribe** (los workers solo lo leen). El orquestador lo actualiza tras recibir reportes de los workers.
->
-> Nota: este archivo es la *plantilla*. Copiala a `AGENTS.md` en la raíz de cada proyecto.
 
 ## Qué es este proyecto
 [1-3 líneas]

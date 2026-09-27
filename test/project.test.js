@@ -1,0 +1,72 @@
+"use strict";
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
+const assert = require("assert");
+const { execFileSync } = require("child_process");
+const { test } = require("node:test");
+
+// Aislar HOME ANTES de requerir los módulos que cachean ~/.hermad/*.
+const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-home-"));
+process.env.HOME = tmpHome;
+
+const { resolveProject } = require("../src/lib/project");
+const { saveActiveProject } = require("../src/lib/active-project");
+
+test("sube desde el cwd y migra el project.json a autocontenido", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-proj-"));
+  fs.mkdirSync(path.join(root, ".hermad"), { recursive: true });
+  // project.json viejo (sin personas/departamentos) — debe migrar.
+  fs.writeFileSync(path.join(root, ".hermad", "project.json"), JSON.stringify({ name: "B", projectDir: "/viejo" }));
+  const nested = path.join(root, "src", "deep");
+  fs.mkdirSync(nested, { recursive: true });
+
+  const p = resolveProject(nested);
+  assert.equal(p.projectDir, root, "resuelve el dir que contiene .hermad");
+  assert.ok(p.personas && p.personas.orquestador, "rellena personas desde config");
+  assert.ok(Array.isArray(p.departamentos) && p.departamentos.length, "rellena departamentos");
+
+  const onDisk = JSON.parse(fs.readFileSync(path.join(root, ".hermad", "project.json"), "utf8"));
+  assert.ok(onDisk.personas && onDisk.departamentos, "reescribe autocontenido");
+  assert.equal(onDisk.label, "B");
+});
+
+test("resuelve al repo principal desde un worktree (journal/inbox compartidos)", () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-repo-"));
+  fs.mkdirSync(path.join(repo, ".hermad"), { recursive: true });
+  fs.writeFileSync(path.join(repo, ".hermad", "project.json"), JSON.stringify({ name: "R", label: "R", personas: {}, departamentos: [] }));
+  const git = (args) => execFileSync("git", args, { cwd: repo, stdio: "pipe" });
+  git(["init", "-q"]);
+  git(["config", "user.email", "t@t"]);
+  git(["config", "user.name", "t"]);
+  git(["add", "-A"]);
+  git(["commit", "-qm", "init"]);
+  const wt = path.join(repo, ".hermad", "worktrees", "S1");
+  git(["worktree", "add", "-b", "hermad/S1", wt, "HEAD"]);
+
+  const p = resolveProject(wt);
+  // git devuelve el path canónico (/private/var vs /var en macOS).
+  assert.equal(fs.realpathSync(p.projectDir), fs.realpathSync(repo), "remapea el worktree al repo principal");
+
+  git(["worktree", "remove", "--force", wt]);
+});
+
+test("cae al proyecto activo global cuando no hay project.json", () => {
+  saveActiveProject({ projectDir: "/x", label: "x", personas: { orquestador: { kind: "claude", modelFlag: "", rol: "r" } }, departamentos: [] });
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-empty-"));
+  const p = resolveProject(empty);
+  assert.equal(p.projectDir, "/x");
+});
+
+test("devuelve null sin project.json ni activo", () => {
+  const emptyHome = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-home2-"));
+  const saved = process.env.HOME;
+  process.env.HOME = emptyHome;
+  // recargar active-project con el HOME limpio
+  delete require.cache[require.resolve("../src/lib/active-project")];
+  delete require.cache[require.resolve("../src/lib/project")];
+  const fresh = require("../src/lib/project");
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-empty2-"));
+  assert.equal(fresh.resolveProject(empty), null);
+  process.env.HOME = saved;
+});

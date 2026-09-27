@@ -1,0 +1,312 @@
+{
+  ".hermad/project.json": {
+    "mtime": 1790495747.9869096,
+    "ast_hash": "08264f628ac31c5b290768fb01ef6618",
+    "semantic_hash": ""
+  },
+  "bin/hermad.js": {
+    "mtime": 1789330332.8981495,
+    "ast_hash": "bd4f19c9ae8c948cef68dcb1b94743e9",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1790490363.1049871,
+    "ast_hash": "53a30701f6a1e3d0cded50c7087ef98f",
+    "semantic_hash": ""
+  },
+  "skill/scripts/orquestar.sh": {
+    "mtime": 1789334492.1289203,
+    "ast_hash": "319df81483ce2e8e1ab36153efec8f9f",
+    "semantic_hash": ""
+  },
+  "src/cli.js": {
+    "mtime": 1790495951.8551073,
+    "ast_hash": "2519d35e12ee8ea87d98ffd6b7991eef",
+    "semantic_hash": ""
+  },
+  "src/commands/create-project.js": {
+    "mtime": 1790493275.595211,
+    "ast_hash": "09d23d9ff05dd58130cb02bb3e4c28a7",
+    "semantic_hash": ""
+  },
+  "src/commands/orchestrate.js": {
+    "mtime": 1790490275.333531,
+    "ast_hash": "8c0ee752b9c90deb9083de0488e1a335",
+    "semantic_hash": ""
+  },
+  "src/commands/settings-agents.js": {
+    "mtime": 1790491822.6902194,
+    "ast_hash": "74f8a7f16840887133e3ff7ebdf2c3a9",
+    "semantic_hash": ""
+  },
+  "src/commands/setup.js": {
+    "mtime": 1790491214.8373652,
+    "ast_hash": "642a62deca621507b6397e5245173405",
+    "semantic_hash": ""
+  },
+  "src/commands/start-team.js": {
+    "mtime": 1790490274.015798,
+    "ast_hash": "144740775db76b2e8e79f365a449cb91",
+    "semantic_hash": ""
+  },
+  "src/commands/update.js": {
+    "mtime": 1789330806.832509,
+    "ast_hash": "90d4dcee0c63f8c47d3c5acf44cd8d79",
+    "semantic_hash": ""
+  },
+  "src/lib/active-project.js": {
+    "mtime": 1789333542.686457,
+    "ast_hash": "59bfddcb93c599088901e98e6b2b9f10",
+    "semantic_hash": ""
+  },
+  "src/lib/config.js": {
+    "mtime": 1790491358.7699785,
+    "ast_hash": "715e87b5046d0e735d86535d0ec591cf",
+    "semantic_hash": ""
+  },
+  "src/lib/herdr.js": {
+    "mtime": 1790491259.9125721,
+    "ast_hash": "41e94797499a7a7008542466f8d80702",
+    "semantic_hash": ""
+  },
+  "src/lib/orchestrator.js": {
+    "mtime": 1790495951.637878,
+    "ast_hash": "1bc2abf69feb452ea5424952ac18daf0",
+    "semantic_hash": ""
+  },
+  "src/lib/personas-env.js": {
+    "mtime": 1789330806.827786,
+    "ast_hash": "a5599c84f27d16bf256d420bee289522",
+    "semantic_hash": ""
+  },
+  "src/lib/prompt.js": {
+    "mtime": 1789330385.1074026,
+    "ast_hash": "103cb7686dfe65fb85d112da685f1c0d",
+    "semantic_hash": ""
+  },
+  "src/lib/prompts.js": {
+    "mtime": 1790490767.9548018,
+    "ast_hash": "95377b4b5e457ab05c17411b85cb1c53",
+    "semantic_hash": ""
+  },
+  "src/lib/vendors.js": {
+    "mtime": 1790495926.9122305,
+    "ast_hash": "528424183205cf4d9885da61ed7e8170",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1790491654.314546,
+    "ast_hash": "44d3b0e96a4f96123b124b0dc91a31da",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1790491899.7350726,
+    "ast_hash": "a807f76ce63d4b5e8e2e3ec3549972ba",
+    "semantic_hash": ""
+  },
+  "command/hermad.md": {
+    "mtime": 1790495968.5275578,
+    "ast_hash": "0cff55e5422bf1db3162f90dd076c729",
+    "semantic_hash": ""
+  },
+  "docs/herdr-bmad-orquestacion.md": {
+    "mtime": 1789330052.7724538,
+    "ast_hash": "63e14d175c26c4ac40aa48ad5d055cec",
+    "semantic_hash": ""
+  },
+  "docs/system-prompts-design.md": {
+    "mtime": 1790491566.759844,
+    "ast_hash": "ad20bfe50cc321e2f3caf9f8eac0d38e",
+    "semantic_hash": ""
+  },
+  "research/bmad-flujo-desatendido.md": {
+    "mtime": 1789330052.7643175,
+    "ast_hash": "72499659df45ddad6e215a474becf8b3",
+    "semantic_hash": ""
+  },
+  "research/herdr-comandos-0.9.0.md": {
+    "mtime": 1789330029.0267665,
+    "ast_hash": "c2a5b4cd711cc7c2da69469abc86a395",
+    "semantic_hash": ""
+  },
+  "research/integracion-patrones.md": {
+    "mtime": 1789330029.0289528,
+    "ast_hash": "43004c301dbb7bccecbc1ed90cf304df",
+    "semantic_hash": ""
+  },
+  "skill/SKILL.md": {
+    "mtime": 1790495976.8762376,
+    "ast_hash": "9491e66c3d1da33a749ce192b38bd3b6",
+    "semantic_hash": ""
+  },
+  "templates/AGENTS-template.md": {
+    "mtime": 1790473357.1381524,
+    "ast_hash": "2c3659bb66d287b999adfacf74bc8fae",
+    "semantic_hash": ""
+  },
+  "templates/prompts/analyst.md": {
+    "mtime": 1790495222.445759,
+    "ast_hash": "a06305c1cf97d84a522782dfa9e61ead",
+    "semantic_hash": ""
+  },
+  "templates/prompts/architect.md": {
+    "mtime": 1790495222.4476418,
+    "ast_hash": "90084e771928e473e24001aedb4ccc75",
+    "semantic_hash": ""
+  },
+  "templates/prompts/dev.md": {
+    "mtime": 1790495204.7909465,
+    "ast_hash": "05bf13847f3378ce78d9dc7f12b22bed",
+    "semantic_hash": ""
+  },
+  "templates/prompts/orquestador.md": {
+    "mtime": 1790495968.5270731,
+    "ast_hash": "d28c3cb44e70669756e5ec9d9862a3ff",
+    "semantic_hash": ""
+  },
+  "templates/prompts/pm.md": {
+    "mtime": 1790495214.756787,
+    "ast_hash": "1fc5ecac6b0862bb91ea2aaaedae4273",
+    "semantic_hash": ""
+  },
+  "templates/prompts/reviewer.md": {
+    "mtime": 1790495200.297548,
+    "ast_hash": "c6c820f8685fccc3fee69cbc574337dc",
+    "semantic_hash": ""
+  },
+  "templates/prompts/ux.md": {
+    "mtime": 1790495222.4558606,
+    "ast_hash": "248953daecfbbde331eb3f40dfaf7085",
+    "semantic_hash": ""
+  },
+  "src/commands/daemon.js": {
+    "mtime": 1790491017.096754,
+    "ast_hash": "17e77e99c77e3ff359b5f44990be728b",
+    "semantic_hash": ""
+  },
+  "src/commands/memory.js": {
+    "mtime": 1790491014.585581,
+    "ast_hash": "0e3ce8c8f68613e164290dbcfaea29d1",
+    "semantic_hash": ""
+  },
+  "src/commands/note.js": {
+    "mtime": 1790492130.0143447,
+    "ast_hash": "58dc02a33006510cc2d303153cff0905",
+    "semantic_hash": ""
+  },
+  "src/commands/open-orchestrator.js": {
+    "mtime": 1790490276.3792253,
+    "ast_hash": "74ca93892390c2bcd6644dd29b3db8a3",
+    "semantic_hash": ""
+  },
+  "src/commands/plan-devs.js": {
+    "mtime": 1790495708.8394096,
+    "ast_hash": "2886ada5933bb9bc9b2f998741c44b6b",
+    "semantic_hash": ""
+  },
+  "src/commands/send.js": {
+    "mtime": 1790492131.0672238,
+    "ast_hash": "a957f14ff970897f783a495f0ecf2476",
+    "semantic_hash": ""
+  },
+  "src/commands/skills.js": {
+    "mtime": 1790491358.2477446,
+    "ast_hash": "6681fdad537256529476725a0a87dc9a",
+    "semantic_hash": ""
+  },
+  "src/commands/spawn.js": {
+    "mtime": 1790495951.6435091,
+    "ast_hash": "5bd6aea8cdf06d73e4310d9f871bb178",
+    "semantic_hash": ""
+  },
+  "src/lib/daemon.js": {
+    "mtime": 1790495192.0178454,
+    "ast_hash": "f4072292770ad27e0150032271f6a463",
+    "semantic_hash": ""
+  },
+  "src/lib/memory.js": {
+    "mtime": 1790495259.734447,
+    "ast_hash": "f50f872540e2af31f5fd5568afc84ef1",
+    "semantic_hash": ""
+  },
+  "src/lib/project.js": {
+    "mtime": 1790493335.1235175,
+    "ast_hash": "7fd029781d545cd5b216f5ca2175bc0e",
+    "semantic_hash": ""
+  },
+  "src/lib/render.js": {
+    "mtime": 1790495936.5075994,
+    "ast_hash": "e2367374ad0d68d9e8f6fb4d3b4b0ae9",
+    "semantic_hash": ""
+  },
+  "src/lib/skills.js": {
+    "mtime": 1790493034.0225017,
+    "ast_hash": "2f78783c571a0c3afcb5cfac40cf776d",
+    "semantic_hash": ""
+  },
+  "src/lib/stories.js": {
+    "mtime": 1790495232.5246243,
+    "ast_hash": "ed24b2fedbd962419d73d52aa30585a9",
+    "semantic_hash": ""
+  },
+  "test/cli-memory.test.js": {
+    "mtime": 1790492143.5242481,
+    "ast_hash": "6a632f8dd3e85d15bfcce2641b1dbdf8",
+    "semantic_hash": ""
+  },
+  "test/daemon.test.js": {
+    "mtime": 1790495323.1010761,
+    "ast_hash": "25c8586a943a504d5ad0535cf6c89e37",
+    "semantic_hash": ""
+  },
+  "test/memory.test.js": {
+    "mtime": 1790491442.2160807,
+    "ast_hash": "c1671db656281269d722e6a84471c14a",
+    "semantic_hash": ""
+  },
+  "test/plan-devs.test.js": {
+    "mtime": 1790495302.7137103,
+    "ast_hash": "73084ed940f7b3b82054c893dfc16694",
+    "semantic_hash": ""
+  },
+  "test/project.test.js": {
+    "mtime": 1790493119.119115,
+    "ast_hash": "4ca61699bf1c1e282fbe366c71db2de7",
+    "semantic_hash": ""
+  },
+  "test/render.test.js": {
+    "mtime": 1790495968.535482,
+    "ast_hash": "7eb05113320e83a15144aa4d2b7cfeab",
+    "semantic_hash": ""
+  },
+  "test/stories.test.js": {
+    "mtime": 1790495613.033787,
+    "ast_hash": "1c01c88ad66b0253536d7d2e66880dd7",
+    "semantic_hash": ""
+  },
+  "test/suggest.test.js": {
+    "mtime": 1790491481.366779,
+    "ast_hash": "2cf936458f2359328902729b3f7049d1",
+    "semantic_hash": ""
+  },
+  "command/orchestrate.md": {
+    "mtime": 1790495968.5264163,
+    "ast_hash": "c06b70fb8837837434b2f0ff1c20abb9",
+    "semantic_hash": ""
+  },
+  "docs/plan-mejoras.md": {
+    "mtime": 1790480023.6136262,
+    "ast_hash": "45de053fb49db2266a67cc55dd66ce16",
+    "semantic_hash": ""
+  },
+  "docs/vendors.md": {
+    "mtime": 1790490185.9516592,
+    "ast_hash": "51230f41f1a57f8b84eaebfffcf119e5",
+    "semantic_hash": ""
+  },
+  "templates/prompts/reader.md": {
+    "mtime": 1790495222.456749,
+    "ast_hash": "9d7a3af3222ea81ba48c38c679cd80cf",
+    "semantic_hash": ""
+  }
+}

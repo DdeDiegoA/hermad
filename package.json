@@ -10,7 +10,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node bin/hermad.js"
+    "start": "node bin/hermad.js",
+    "test": "node --test"
   },
   "license": "MIT"
 }

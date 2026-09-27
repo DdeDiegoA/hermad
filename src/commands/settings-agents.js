@@ -78,6 +78,20 @@ async function run(args) {
     fs.writeFileSync(path.join(projectDir, ".hermad", "personas.env"), rendered);
     console.log(`[+] copia del proyecto actualizada en ${path.join(projectDir, ".hermad", "personas.env")}`);
   }
+
+  // project.json es autocontenido: sin esto, `hermad start-team` seguiría usando
+  // las personas viejas del proyecto aunque la config global cambie.
+  const projectJson = path.join(targetProjectDir, ".hermad", "project.json");
+  if (fs.existsSync(projectJson)) {
+    try {
+      const proj = JSON.parse(fs.readFileSync(projectJson, "utf8"));
+      proj.personas = cfg.personas;
+      fs.writeFileSync(projectJson, JSON.stringify(proj, null, 2) + "\n");
+      console.log(`[+] personas actualizadas en ${projectJson}`);
+    } catch (err) {
+      console.error(`aviso: no pude actualizar ${projectJson} (${err.message})`);
+    }
+  }
 }
 
 module.exports = { run };

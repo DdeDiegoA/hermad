@@ -14,6 +14,9 @@ const SYMLINKS = [
   [path.join(REPO_ROOT, "skill"), path.join(os.homedir(), ".hermes", "skills", "autonomous-ai-agents", "herdr-bmad")],
   [path.join(REPO_ROOT, "command", "hermad.md"), path.join(os.homedir(), ".claude", "commands", "hermad.md")],
   [path.join(REPO_ROOT, "command", "hermad.md"), path.join(os.homedir(), ".config", "opencode", "commands", "hermad.md")],
+  // /hermad:orchestrate (claude namespaced por subdir) y su alias plano en opencode (sin namespacing).
+  [path.join(REPO_ROOT, "command", "orchestrate.md"), path.join(os.homedir(), ".claude", "commands", "hermad", "orchestrate.md")],
+  [path.join(REPO_ROOT, "command", "orchestrate.md"), path.join(os.homedir(), ".config", "opencode", "commands", "hermad-orchestrate.md")],
 ];
 
 function linkOne(target, linkPath) {

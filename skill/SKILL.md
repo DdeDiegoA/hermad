@@ -8,7 +8,7 @@ description: "Use when orchestrating Herdr + BMad multi-agent flows."
 Dos capas, un flujo:
 
 - **Herdr** (herdr.dev): multiplexer de terminales *agent-aware*. Un servidor es dueño de los procesos; detecta agentes de coding por pane y reporta su estado (`working`/`idle`/`blocked`/`done`). Control vía CLI (`herdr ...`) o socket API.
-- **BMad** (docs.bmad-method.org): metodología spec-driven. Se instala **por proyecto** como skills dentro del coding tool. 5 personas (agentes con rol) + workflows de SDLC.
+- **BMad** (docs.bmad-method.org): metodología spec-driven. Se instala **por proyecto** como skills dentro del coding tool. Personas (agentes con rol) + workflows de SDLC; hermad corre 7 (orquestador + 5 BMad + reviewer).
 
 La integración: **un agente Herdr por persona BMad** (cada uno con su vendor+modelo), más un **orquestador top** que rutea la ruta épica y responde las aprobaciones.
 
@@ -21,6 +21,7 @@ workspace (herdr)
 ├── pane architect    (claude, sonnet)   — Winston: architecture/spine
 ├── pane pm           (claude, sonnet)   — John: product-brief/prd/epics
 ├── pane dev          (opencode, ...)    — Amelia: bmad-build / bmad-build-auto
+├── pane reviewer     (opencode, ...)    — revisor adversarial: bmad-code-review
 └── pane ux           (opencode, ...)    — Sally: bmad-ux
 ```
 
@@ -58,7 +59,7 @@ herdr agent read   <t> --source visible|recent-unwrapped --lines N
 herdr agent send-keys <t> enter|esc                             # responder a agente bloqueado
 ```
 
-Semántica 0.9.0 (corrige versiones viejas):
+Semántica 0.9.0:
 - `--until` es **repetible** (multi-estado). Sin `--until`, `agent wait` matchea `idle|done|blocked`.
 - `agent prompt --wait` sobre un agente ya `blocked` → **`agent_blocked`** (no envía nada). Responder con `agent send-keys`, nunca con `agent prompt`.
 - `agent prompt --wait` sin arranque de turno en 5000ms → `agent_prompt_stalled`.
@@ -75,6 +76,7 @@ Semántica 0.9.0 (corrige versiones viejas):
 | Winston — Architect | `bmad-agent-architect` | Plan: architecture (spine) |
 | Amelia — Dev | `bmad-agent-dev` | Build: bmad-build / bmad-build-auto |
 | Sally — UX | `bmad-agent-ux-designer` | Design: bmad-ux |
+| Reviewer — QA | `bmad-code-review` | Review: diffs, tests, bugs → dev |
 
 Ruta épica: **Intent → Spec → Stories → Build×stories → Integrate → Retro**. Workflows clave: `bmad-spec` (condensa a `SPEC.md`), `bmad-create-epics-and-stories` (`stories.yaml`), `bmad-build` (una story), `bmad-code-review`, `bmad-retrospective`. Artefactos: `SPEC.md`, `stories.yaml`, `ARCHITECTURE-SPINE.md`, `prd.md`, `brief.md`.
 
@@ -108,15 +110,15 @@ Auto-aprueba el plan del worker, **excepto** si toca: auth, dinero/pagos, base d
 4. **Config compartida**: `.claude/` y `_bmad/` son compartidos por diseño; aislá por pane con env (`OPENCODE_CONFIG`, `CLAUDE_CONFIG_DIR`) si dos agentes corren la misma persona.
 5. **Un solo writer**: nunca dos panes escribiendo el mismo working tree. Stories paralelas → `git worktree`/branch por story, merge al final.
 6. **El orquestador es el dueño de la aprobación** (replica al humano), no una cadena que auto-aprueba todo — eso anula el "you make the calls" de BMad.
-7. **No splitees un pane con un agente full-screen corriendo** — el split deja el nuevo pane sin shell (`agent_pane_busy: not an available shell`). Pre-spliteá TODOS los panes antes de arrancar ningún agente (el script `orquestar.sh` ya lo hace).
+7. **No splitees un pane con un agente full-screen corriendo** — el split deja el nuevo pane sin shell (`agent_pane_busy: not an available shell`). Pre-spliteá TODOS los panes antes de arrancar ningún agente (`hermad start-team` ya lo hace).
 
 ## Entrada `/hermad`
 
-`/hermad <intent>` es el entrypoint del orquestador (comando en `.claude/commands/` y `.opencode/commands/`). Al invocarlo desde un pane de herdr, el agente actúa como **Hermad**: verifica `HERDR_ENV=1` → lee `AGENTS.md` → `herdr agent list` → mapea el intent a una persona BMad → dropea si falta → envía el trabajo → atiende el handshake.
+`/hermad <intent>` es el entrypoint del orquestador (`hermad setup` lo enlaza en `~/.claude/commands/` y `~/.config/opencode/commands/`). Al invocarlo desde un pane de herdr, el agente actúa como **Hermad**: verifica `HERDR_ENV=1` → lee `AGENTS.md` → `herdr agent list` → mapea el intent a una persona BMad → dropea si falta → envía el trabajo → atiende el handshake.
 
 ## Reuso de agentes
 
-Antes de dropear nada: `herdr agent list`. Los panes y agentes sobreviven al detach; reusá el agente vivo en vez de crear duplicados. Solo `agent start` si la persona no está en el roster.
+Antes de dropear nada: `herdr agent list`. Los panes y agentes sobreviven al detach; reusá el agente vivo en vez de crear duplicados. Si la persona no está viva: `hermad spawn <persona> [--name <agente>]` (nunca `herdr agent start` a mano: spawn aplica persona, skills, memoria y el modo sin prompts de permisos).
 
 ## Comunicación peer-to-peer
 
@@ -133,9 +135,9 @@ Patrones: reviewer → dev (devuelve bug); pm → N devs (asigna issues) → dev
 
 ## Memoria compartida (AGENTS.md)
 
-El contexto general vive en `AGENTS.md` en la raíz del repo — Claude Code y OpenCode lo leen automáticamente al arrancar. Ahí van: qué es el proyecto, stack, decisiones de arquitectura con rationale, roster de personas, fase actual, reglas del equipo. BMad aporta lo suyo en `_bmad/` (config compartida) + skill `bmad-project-context`. No hace falta una herramienta externa de memoria (memento, etc.) — un archivo que todos leen ya cubre el caso.
+El contexto general vive en `AGENTS.md` en la raíz del repo. OpenCode lo lee nativo; **Claude Code NO** — lee `CLAUDE.md`, por eso `hermad` genera un `CLAUDE.md` con `@AGENTS.md`. Ahí van: qué es el proyecto, stack, decisiones de arquitectura con rationale, roster de personas, fase actual, reglas del equipo. BMad aporta lo suyo en `_bmad/` (config compartida) + skill `bmad-project-context`.
 
-**Solo el orquestador escribe `AGENTS.md`** (los workers solo lo leen). Tras recibir reportes de los workers, el orquestador lo actualiza con la info relevante del proyecto (decisiones, fase, hallazgos). Nunca un worker escribe la memoria.
+Memoria en **dos capas**: `AGENTS.md` curado + `.hermad/memory/journal.md` append-only (todos escriben una línea con `hermad note`, filtrada por persona/story; el slice atómico se inyecta en cada arranque/compact con el hook `SessionStart` → `hermad memory slice <persona>`). **Solo el orquestador escribe `AGENTS.md`** y consolida el journal al cerrar cada fase.
 
 ## Layout por departamentos (tabs)
 
@@ -150,7 +152,7 @@ workspace
 └── tab diseño      → ux
 ```
 
-`herdr tab create --workspace <id> --label <dept> --cwd <repo> --no-focus` → `.result.root_pane.pane_id`. Dentro del tab: `pane split <pane> --direction right` (columnas) y `--direction down` (2ª fila). El script `orquestar.sh` arma esto desde `DEPARTAMENTOS` en `personas.env`.
+`herdr tab create --workspace <id> --label <dept> --cwd <repo> --no-focus` → `.result.root_pane.pane_id`. Dentro del tab: `pane split <pane> --direction right` (columnas) y `--direction down` (2ª fila). `hermad start-team` / `orchestrate` arman esto desde los departamentos del proyecto activo (`active-project.json`).
 
 ## System prompts
 
@@ -164,9 +166,17 @@ templates/prompts/pm.md            # John — relentless WHY? PM
 templates/prompts/dev.md           # Amelia — ultra-succinct, tests-first dev
 templates/prompts/reviewer.md      # adversarial skeptical QA
 templates/prompts/ux.md            # Sally — empathetic storyteller UX
+templates/prompts/reader.md        # Reader — read-only code map (descartable)
 ```
 
-The orchestrator (`src/lib/orchestrator.js`) loads the matching prompt for each persona and injects it on agent start: `--append-system-prompt` for Claude, or `herdr agent prompt` after idle for other vendors. Workers receive their persona, tab, peer-to-peer command reference, and approval policy on boot.
+Cada template lleva frontmatter (`name`, `skills`, `readonly`). `src/lib/render.js` renderiza **por proyecto** al arrancar (no hay mensaje inicial en el TUI):
+
+- **claude** → `.hermad/generated/prompts/<p>.md` + plugin por persona en `.hermad/generated/claude/<p>/` (skills de la allowlist + hook de memoria) lanzado con `--plugin-dir`, `--append-system-prompt-file` y `--setting-sources project,local` (aísla skills/plugins de usuario). Compact al 50% por `--settings` (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`).
+- **opencode** → `.opencode/agents/hermad-<p>.md` (prompt por `{file}`, `permission.skill` con allowlist, `model`) lanzado con `--agent hermad-<p>`.
+- **hermes** → `SOUL.md` generado + `--skills`; persona por inyección de prompt (no hay selección de profile por flag fiable).
+- **codex/gemini/otros** → fallback documentado (`agent wait idle` + `agent prompt`).
+
+Los generados van al `.gitignore` del proyecto (`.hermad/generated/`, `.opencode/agents/hermad-*`). Detalle por vendor: `docs/vendors.md`.
 
 ## Referencias
 

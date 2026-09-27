@@ -46,8 +46,10 @@ function tabCreate(workspaceId, cwd, label) {
   return { rootPaneId: r.root_pane.pane_id };
 }
 
-function paneSplit(paneId, direction) {
-  const r = call(["pane", "split", paneId, "--direction", direction, "--no-focus"]);
+function paneSplit(paneId, direction, { cwd } = {}) {
+  const args = ["pane", "split", paneId, "--direction", direction, "--no-focus"];
+  if (cwd) args.push("--cwd", cwd);
+  const r = call(args);
   return { paneId: r.pane.pane_id };
 }
 
@@ -102,4 +104,31 @@ function agentWait(name, untilStates, timeoutMs) {
   return call(args);
 }
 
-module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, agentStart, agentPrompt, agentWait };
+// `pane run` recién creado puede no tener shell lista todavía.
+function paneRun(paneId, command, { retries = 20, retryDelayMs = 1000 } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return call(["pane", "run", paneId, command]);
+    } catch (err) {
+      if (err.code === "pane_busy" && attempt < retries) {
+        sleepMs(retryDelayMs);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+function agentList() {
+  const r = call(["agent", "list"]);
+  return r.agents || [];
+}
+
+function agentRead(name, { source = "visible", lines } = {}) {
+  const args = ["agent", "read", name, "--source", source];
+  if (lines != null) args.push("--lines", String(lines));
+  const r = call(args);
+  return (r.read && r.read.text) || r.text || "";
+}
+
+module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, agentStart, agentPrompt, agentWait, paneRun, agentList, agentRead };

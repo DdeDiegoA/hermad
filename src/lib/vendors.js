@@ -76,4 +76,62 @@ function modelsFor(kind) {
   return (STATIC_MODEL_CATALOG[kind] || []).map((m) => ({ ...m, flag: `${flagPrefix}${m.id}` }));
 }
 
-module.exports = { VENDOR_BINARIES, detectInstalledVendors, modelsFor, which };
+// Cómo entregar el persona prompt a cada vendor al arrancar.
+// Devuelve { args, promptText }:
+//   - args        → argv extra tras `--` en `herdr agent start`
+//   - promptText  → si no es null, se inyecta como primer mensaje en idle
+//                   (fallback de vendors sin prompt-por-archivo).
+// Todo agente que lanza hermad corre sin prompts de permisos (no debe quedar
+// esperando un "¿permitir?"). Los deny explícitos (reader readonly, allowlist de
+// skills) siguen aplicando. Los gates de negocio (auth/dinero/DB/seguridad) son
+// del flujo, no de permisos de herramienta — no los toca esto.
+const BYPASS_ARGS = {
+  claude: ["--permission-mode", "bypassPermissions"],
+  opencode: ["--auto"], // auto-aprueba lo no denegado explícitamente
+  hermes: ["--yolo"],
+  codex: ["--dangerously-bypass-approvals-and-sandbox"],
+  gemini: ["--yolo"],
+};
+
+function startPlan(kind, personaName, persona, artifacts) {
+  const modelFlags = [
+    ...(Array.isArray(persona.modelFlag) ? persona.modelFlag : (persona.modelFlag || "").split(" ").filter(Boolean)),
+    ...(BYPASS_ARGS[kind] || []),
+  ];
+  const skillNames = artifacts.skillsFound || [];
+
+  switch (kind) {
+    case "claude":
+      // Allowlist + aislamiento de skills de usuario (--setting-sources project,local)
+      // + prompt real por archivo (sin mensaje inicial visible).
+      return {
+        args: [
+          ...modelFlags,
+          "--setting-sources", "project,local",
+          "--plugin-dir", artifacts.claude.pluginDir,
+          "--append-system-prompt-file", artifacts.promptFile,
+          "--settings", artifacts.claude.settingsFile,
+        ],
+        promptText: null,
+      };
+
+    case "opencode": {
+      // El agente md (generado por render) trae prompt + permission.skill + model.
+      return { args: [...modelFlags, "--agent", artifacts.opencode.agentName], promptText: null };
+    }
+
+    case "hermes":
+      // hermes no expone selección de profile por flag/env fiable → skills por flag,
+      // persona por inyección de prompt (ver docs/vendors.md).
+      return {
+        args: [...modelFlags, ...(skillNames.length ? ["--skills", skillNames.join(",")] : [])],
+        promptText: artifacts.promptBody,
+      };
+
+    default:
+      // codex/gemini/otros: fallback documentado (agent wait idle + agent prompt).
+      return { args: modelFlags, promptText: artifacts.promptBody };
+  }
+}
+
+module.exports = { VENDOR_BINARIES, BYPASS_ARGS, detectInstalledVendors, modelsFor, which, startPlan };

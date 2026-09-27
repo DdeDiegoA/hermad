@@ -16,6 +16,7 @@ const DEFAULT_PERSONAS = {
   dev: { kind: "opencode", modelFlag: "", rol: "Amelia — build" },
   reviewer: { kind: "opencode", modelFlag: "", rol: "Revisor — code review/QA" },
   ux: { kind: "opencode", modelFlag: "", rol: "Sally — UX" },
+  reader: { kind: "opencode", modelFlag: "", rol: "Reader — mapa read-only del código (descartable)" },
 };
 
 function defaultConfig() {

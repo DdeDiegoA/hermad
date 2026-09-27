@@ -7,7 +7,15 @@ Uso:
   hermad create-project "nombre"        scaffolding agentico completo para un proyecto nuevo
   hermad settings agents [persona]      re-define CLI/modelo por agente (todas o una)
   hermad start-team                     abre workspace+tabs+agentes conectados, sin prompt inicial
+  hermad open-orchestrator              abre workspace solo con el orquestador (workers bajo demanda)
   hermad orchestrate "intent"           igual que start-team pero le manda el intent al orquestador
+  hermad daemon                         pane del daemon: buzón + rutas HERMAD: + compact watchdog
+  hermad send <peer> "<msg>"            encola un mensaje en el buzón del peer
+  hermad note "<texto>" [--story X] [--for persona]   agrega una entrada al journal
+  hermad memory slice <persona> [--story X]           imprime el bloque de memoria de esa persona
+  hermad spawn <persona> [--name X] [--pane ID]  dropea un agente (persona+skills+memoria+bypass)
+  hermad plan-devs [--max N]            crea worktrees+branches desde stories.yaml y dropea devs
+  hermad skills suggest <persona>       propone skills para el frontmatter (no aplica solo)
   hermad update                         git pull del repo instalado (updates desde GitHub)
   hermad --version                      versión instalada
   hermad --help                         esta ayuda
@@ -39,8 +47,32 @@ async function main(argv) {
       case "start-team":
         require("./commands/start-team").run();
         break;
+      case "open-orchestrator":
+        require("./commands/open-orchestrator").run();
+        break;
       case "orchestrate":
         require("./commands/orchestrate").run(rest);
+        break;
+      case "daemon":
+        require("./commands/daemon").run();
+        break;
+      case "send":
+        require("./commands/send").run(rest);
+        break;
+      case "note":
+        require("./commands/note").run(rest);
+        break;
+      case "memory":
+        require("./commands/memory").run(rest);
+        break;
+      case "spawn":
+        require("./commands/spawn").run(rest);
+        break;
+      case "plan-devs":
+        require("./commands/plan-devs").run(rest);
+        break;
+      case "skills":
+        require("./commands/skills").run(rest);
         break;
       case "update":
         require("./commands/update").run();
