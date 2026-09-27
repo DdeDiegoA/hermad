@@ -65,8 +65,10 @@ test("resuelve al repo principal desde un worktree (journal/inbox compartidos)",
   git(["worktree", "add", "-b", "hermad/S1", wt, "HEAD"]);
 
   const p = resolveProject(wt);
-  // git devuelve el path canónico (/private/var vs /var en macOS).
-  assert.equal(fs.realpathSync(p.projectDir), fs.realpathSync(repo), "remapea el worktree al repo principal");
+  // Canónico de verdad: /private/var vs /var (macOS) y nombres cortos 8.3 (Windows,
+  // p.ej. RUNNER~1); fs.realpathSync (JS) no expande los 8.3, .native sí.
+  const real = (x) => fs.realpathSync.native(x);
+  assert.equal(real(p.projectDir), real(repo), "remapea el worktree al repo principal");
 
   git(["worktree", "remove", "--force", wt]);
 });
