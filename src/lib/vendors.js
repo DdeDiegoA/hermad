@@ -77,6 +77,11 @@ function modelsFor(kind) {
   return (STATIC_MODEL_CATALOG[kind] || []).map((m) => ({ ...m, flag: `${flagPrefix}${m.id}` }));
 }
 
+// Override de modelo al vuelo (`hermad spawn <persona> --kind X --model Y`).
+function modelFlagFor(kind, id) {
+  return `${MODEL_FLAG_PREFIX[kind] || "--model "}${id}`;
+}
+
 // Cómo entregar el persona prompt a cada vendor al arrancar.
 // Devuelve { args, promptText }:
 //   - args        → argv extra tras `--` en `herdr agent start`
@@ -135,4 +140,4 @@ function startPlan(kind, personaName, persona, artifacts) {
   }
 }
 
-module.exports = { VENDOR_BINARIES, BYPASS_ARGS, detectInstalledVendors, modelsFor, which, startPlan };
+module.exports = { VENDOR_BINARIES, BYPASS_ARGS, detectInstalledVendors, modelsFor, modelFlagFor, which, startPlan };

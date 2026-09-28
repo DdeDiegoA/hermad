@@ -1,7 +1,7 @@
 "use strict";
 const assert = require("assert");
 const { test } = require("node:test");
-const { departmentFor, gridPlacement, moveToDepartment } = require("../src/lib/placement");
+const { departmentFor, gridPlacement, moveToDepartment, paneForAgent } = require("../src/lib/placement");
 
 const PROJECT = { departamentos: [["producto", ["architect", "pm"]], ["desarrollo", ["dev"]], ["qa", ["reviewer"]]] };
 
@@ -81,4 +81,60 @@ test("moveToDepartment no aborta: tab ausente / tabList o paneMove fallan → pa
     "p0",
     "paneMove tiró"
   );
+});
+
+test("paneForAgent con tab existente divide desde el daemon y mueve a la grilla", () => {
+  const calls = [];
+  const paneId = paneForAgent(PROJECT, "dev", {
+    workspaceId: "w1",
+    daemonPaneId: "w1:p0",
+    cwd: "/repo",
+    tabList: () => [{ tab_id: "w1:t3", label: "desarrollo" }],
+    paneList: () => [{ pane_id: "w1:p1", tab_id: "w1:t3" }],
+    paneSplit: (id, dir) => {
+      calls.push(["split", id, dir]);
+      return { paneId: "w1:new" };
+    },
+    paneMove: (id, opts) => {
+      calls.push(["move", id, opts]);
+      return { paneId: "w1:p9" };
+    },
+    log: () => {},
+  });
+  assert.equal(paneId, "w1:p9");
+  assert.deepEqual(calls[0], ["split", "w1:p0", "down"]);
+  assert.equal(calls[1][0], "move");
+});
+
+test("paneForAgent crea el tab del departamento si no existe (on-demand)", () => {
+  let split = false;
+  const paneId = paneForAgent(PROJECT, "reviewer", {
+    workspaceId: "w1",
+    daemonPaneId: "w1:p0",
+    cwd: "/repo",
+    tabList: () => [{ tab_id: "w1:t1", label: "default" }],
+    tabCreate: (_ws, _cwd, label) => ({ rootPaneId: `w1:root-${label}` }),
+    paneSplit: () => {
+      split = true;
+      return { paneId: "x" };
+    },
+    log: () => {},
+  });
+  assert.equal(paneId, "w1:root-qa");
+  assert.equal(split, false, "no divide: el agente arranca en el root del tab nuevo (sin pane vacío)");
+});
+
+test("paneForAgent sin departamento devuelve null (no contamina el tab default)", () => {
+  const paneId = paneForAgent(PROJECT, "reader", {
+    workspaceId: "w1",
+    daemonPaneId: "w1:p0",
+    tabList: () => [{ tab_id: "t1", label: "default" }],
+    paneSplit: () => ({ paneId: "x" }),
+    log: () => {},
+  });
+  assert.equal(paneId, null);
+});
+
+test("paneForAgent sin workspace devuelve null", () => {
+  assert.equal(paneForAgent(PROJECT, "dev", { tabList: () => [] }), null);
 });

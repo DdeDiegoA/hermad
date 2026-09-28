@@ -108,22 +108,30 @@ function run(args) {
     const plan = vendors.startPlan(devPersona.kind, "dev", devPersona, artifacts);
     drops.push({ dev, story: story.id, branch });
 
-    if (!state.daemonPaneId) {
-      console.log(`[!] sin pane del daemon registrado — dropeá el dev a mano:`);
-      console.log(`    herdr pane split --current --direction right --cwd ${wtDir}`);
-      console.log(`    herdr agent start ${dev} --kind ${devPersona.kind} --pane <id> -- ${plan.args.join(" ")}`);
-      return;
-    }
+    // Mismo destino que `hermad spawn`: el tab del departamento `dev`
+    // (desarrollo), creado al vuelo si el workspace es on-demand.
+    let paneId;
     try {
-      let { paneId } = herdr.paneSplit(state.daemonPaneId, "down", { cwd: wtDir });
-      // mismo destino que `hermad spawn`: el tab del departamento `dev` (desarrollo).
-      paneId = placement.moveToDepartment(project, "dev", paneId, {
+      paneId = placement.paneForAgent(project, "dev", {
         workspaceId: state.workspaceId,
+        daemonPaneId: state.daemonPaneId,
+        cwd: wtDir,
         tabList: herdr.tabList,
+        tabCreate: herdr.tabCreate,
         paneList: herdr.paneList,
+        paneSplit: herdr.paneSplit,
         paneMove: herdr.paneMove,
         log: console.log,
       });
+    } catch (err) {
+      console.log(`[!] no pude ubicar ${dev} (${err.code || err.message}) — worktree ${branch} listo igual`);
+      return;
+    }
+    if (!paneId) {
+      console.log(`[!] no pude ubicar ${dev} en el tab 'desarrollo' — worktree ${branch} listo igual`);
+      return;
+    }
+    try {
       herdr.agentStart(dev, devPersona.kind, paneId, plan.args);
       if (plan.promptText) {
         herdr.agentWait(dev, ["idle"], 60000);

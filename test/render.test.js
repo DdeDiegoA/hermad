@@ -58,3 +58,14 @@ test("claude niega las skills del proyecto (.claude/skills) — la allowlist va 
   assert.ok(deny.includes("Skill(bmad-prd)") && deny.includes("Skill(bmad-build)"), JSON.stringify(deny));
   assert.ok(a.skillsFound.includes("bmad-build"), "bmad-build sigue permitida vía plugin");
 });
+
+test("claude no usa subagentes internos: Agent/Task deny + regla, opencode no la recibe", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-subagent-"));
+  const claude = render.renderPersona({ projectDir: dir, name: "pm", persona: { kind: "claude", rol: "pm" } });
+  const deny = JSON.parse(fs.readFileSync(claude.claude.settingsFile, "utf8")).permissions.deny;
+  assert.ok(deny.includes("Agent") && deny.includes("Task"), JSON.stringify(deny));
+  assert.match(fs.readFileSync(claude.promptFile, "utf8"), /Internal subagents are DISABLED/);
+
+  const opencode = render.renderPersona({ projectDir: dir, name: "dev", persona: { kind: "opencode", rol: "dev" } });
+  assert.doesNotMatch(fs.readFileSync(opencode.promptFile, "utf8"), /Internal subagents are DISABLED/);
+});

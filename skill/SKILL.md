@@ -154,6 +154,8 @@ workspace
 
 `herdr tab create --workspace <id> --label <dept> --cwd <repo> --no-focus` → `.result.root_pane.pane_id`. Dentro del tab: `pane split <pane> --direction right` (columnas) y `--direction down` (2ª fila). `hermad start-team` / `orchestrate` arman esto desde los departamentos del proyecto activo (`active-project.json`).
 
+**Cada worker vive en su tab de departamento, nunca en el default.** `hermad spawn <persona>` y `hermad plan-devs` resuelven el departamento de la persona vía `placement.paneForAgent`: si el tab existe, dividen desde el pane del daemon y mueven el pane nuevo al tab con la grilla; si no existe (workspace on-demand de `hermad open-orchestrator`), **crean el tab al vuelo** y el agente arranca en su root pane — sin dejar un shell vacío ni ensuciar el tab del orquestador. Si una persona no está en `departamentos` (o falta workspace/daemon), `spawn` aborta con error en vez de meter el pane en el default: agregá la persona a `departamentos` en `.hermad/project.json` (`hermad settings agents`).
+
 ## System prompts
 
 Per-persona system prompts live in `templates/prompts/`:
@@ -177,6 +179,16 @@ Cada template lleva frontmatter (`name`, `skills`, `readonly`). `src/lib/render.
 - **codex/gemini/otros** → fallback documentado (`agent wait idle` + `agent prompt`).
 
 Los generados van al `.gitignore` del proyecto (`.hermad/generated/`, `.opencode/agents/hermad-*`). Detalle por vendor: `docs/vendors.md`.
+
+## Delegación y costo (sin subagentes internos)
+
+Los agentes **claude** no usan subagentes internos: su settings niega las tools `Agent`/`Task`, y el prompt renderizado les agrega la regla. Para delegar, un claude hace handoff a un peer (`hermad send <peer> "..."`) o **pide al orquestador abrir un worker de un vendor más barato**:
+
+```bash
+hermad spawn <persona> [--name <agente>] --kind <vendor> [--model <id>]
+```
+
+`--kind` (opencode/codex/hermes/gemini/…) y `--model` pisan el vendor/modelo de la persona; sin `--name`, el agente se llama `<persona>-<kind>` para no chocar con el de la persona. Así el trabajo masivo barato lo hace otro vendor y el claude no quema tokens en subagentes.
 
 ## Referencias
 

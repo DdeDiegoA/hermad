@@ -37,12 +37,24 @@ function modelIdFrom(modelFlag) {
   return i >= 0 ? flags[i + 1] : null;
 }
 
+// Claude Code's subagent launcher tool es `Agent` (versiones viejas: `Task`). En
+// hermad el trabajo se delega a un peer de otro vendor (más barato), no a un
+// subagente interno: se niega la tool en el settings de claude y se le dice al
+// agente qué hacer en su lugar.
+const CLAUDE_DELEGATION_RULE = [
+  "## Delegation & cost (Claude)",
+  "Internal subagents are DISABLED (`Agent`/`Task` are denied) — never try to spawn one.",
+  "To delegate, hand off to a peer: `hermad send <peer> \"...\"`.",
+  "For bulk or low-stakes work, ask the orquestador to open a cheaper-vendor worker:",
+  "`hermad spawn <persona> [--name <agent>] --kind <vendor> [--model <id>]` (e.g. `--kind opencode`, `--kind codex`).",
+].join("\n");
+
 // sourceDir = de dónde se lee la memoria (AGENTS.md + journal) y las skills. En
 // un worktree projectDir=wtDir (salida del agente) pero sourceDir=repo principal.
 function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50 }) {
   const p = prompts.loadPersona(name) || { skills: [], body: persona.rol || `You are the ${name} persona.` };
   const memBlock = memory.slice(sourceDir, { persona: name });
-  const baseBody = p.body;
+  const baseBody = persona.kind === "claude" ? `${p.body}\n\n${CLAUDE_DELEGATION_RULE}` : p.body;
   // El prompt-por-archivo de claude/opencode NO lleva memoria: claude la recibe
   // por CLAUDE.md/@AGENTS.md + el hook, opencode por el AGENTS.md nativo. Solo el
   // fallback (hermes/codex/…) necesita el bloque atómico embebido.
@@ -100,9 +112,9 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   // Las skills permitidas llegan por el plugin (hermad-<persona>:<skill>). Las del
   // proyecto (p.ej. las 29 de BMad en .claude/skills/) las carga claude igual con
   // --setting-sources project, así que se niegan todas: la allowlist queda en el plugin.
-  const deny = skills.listProjectClaude(projectDir, sourceDir).map((n) => `Skill(${n})`);
+  const deny = ["Agent", "Task", ...skills.listProjectClaude(projectDir, sourceDir).map((n) => `Skill(${n})`)];
   if (p.readonly) deny.push("Edit", "Write", "NotebookEdit", "Bash(sed -i:*)", "Bash(tee:*)", "Bash(dd:*)");
-  if (deny.length) settings.permissions = { deny };
+  settings.permissions = { deny };
   const settingsFile = path.join(projectDir, GEN_DIR, "claude", `${name}.settings.json`);
   write(settingsFile, JSON.stringify(settings, null, 2) + "\n");
 

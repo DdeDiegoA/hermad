@@ -14,7 +14,7 @@ Uso:
   hermad send <peer> "<msg>"            encola un mensaje en el buzón del peer
   hermad note "<texto>" [--story X] [--for persona]   agrega una entrada al journal
   hermad memory slice <persona> [--story X]           imprime el bloque de memoria de esa persona
-  hermad spawn <persona> [--name X] [--pane ID]  dropea un agente (persona+skills+memoria+bypass)
+  hermad spawn <persona> [--name X] [--pane ID] [--kind V] [--model ID]   dropea un agente en su tab (--kind abre un vendor más barato)
   hermad plan-devs [--max N]            crea worktrees+branches desde stories.yaml y dropea devs
   hermad skills suggest <persona>       propone skills para el frontmatter (no aplica solo)
   hermad update                         git pull del repo instalado (updates desde GitHub)

@@ -60,4 +60,46 @@ function moveToDepartment(project, persona, paneId, io = {}) {
   }
 }
 
-module.exports = { departmentFor, gridPlacement, moveToDepartment };
+// Pane donde debe ARRANCAR un agente recién lanzado, garantizando el tab de su
+// departamento. Camino normal (tab ya existe, p.ej. start-team): divide desde el
+// pane del daemon y mueve el pane nuevo al tab respetando la grilla. Si el tab
+// todavía no existe (workspace on-demand, `hermad open-orchestrator`): lo crea y
+// devuelve su root pane — el agente arranca ahí, sin dejar un shell vacío. Sin
+// departamento o sin workspace → null (el caller decide). io inyectable:
+//   { workspaceId, cwd, daemonPaneId, tabList, tabCreate, paneList, paneSplit, paneMove, log }
+function paneForAgent(project, persona, io = {}) {
+  const { workspaceId, cwd, daemonPaneId, tabList, tabCreate, paneList, paneSplit, paneMove, log = () => {} } = io;
+  if (!workspaceId || !tabList) return null;
+
+  const label = departmentFor(project, persona);
+  if (!label) {
+    log(`[!] ${persona} no está en ningún departamento de project.json — agregalo para ubicarlo en un tab`);
+    return null;
+  }
+
+  let tab;
+  try {
+    tab = tabList(workspaceId).find((t) => t.label === label);
+  } catch (err) {
+    log(`[!] no pude listar tabs (${err.code || err.message}) — ${persona} sin ubicar`);
+    return null;
+  }
+
+  if (!tab) {
+    if (!tabCreate) return null;
+    try {
+      const { rootPaneId } = tabCreate(workspaceId, cwd, label);
+      log(`[+] creé el tab '${label}' para ${persona}`);
+      return rootPaneId;
+    } catch (err) {
+      log(`[!] no pude crear el tab '${label}' (${err.code || err.message}) — dropeá ${persona} a mano`);
+      return null;
+    }
+  }
+
+  if (!daemonPaneId || !paneSplit) return null;
+  const paneId = paneSplit(daemonPaneId, "down", { cwd }).paneId;
+  return moveToDepartment(project, persona, paneId, { workspaceId, tabList, paneList, paneMove, log });
+}
+
+module.exports = { departmentFor, gridPlacement, moveToDepartment, paneForAgent };
