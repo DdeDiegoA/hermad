@@ -11,6 +11,11 @@ process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(
 const render = require("../src/lib/render");
 const memory = require("../src/lib/memory");
 
+function makeSkill(dir, name, description = "x") {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n---\nbody\n`);
+}
+
 test("claude/opencode no duplican AGENTS.md; opencode sí recibe el journal", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-render-"));
   fs.writeFileSync(path.join(dir, "AGENTS.md"), "# AGENTS\nmemoria compartida");
@@ -68,4 +73,42 @@ test("claude no usa subagentes internos: Agent/Task deny + regla, opencode no la
 
   const opencode = render.renderPersona({ projectDir: dir, name: "dev", persona: { kind: "opencode", rol: "dev" } });
   assert.doesNotMatch(fs.readFileSync(opencode.promptFile, "utf8"), /Internal subagents are DISABLED/);
+});
+
+test("render separa skills nativas de por-ruta según el vendor (agentName keyea los artefactos)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-split-"));
+  const home = process.env.HOME;
+  makeSkill(path.join(dir, ".claude", "skills", "proj-skill"), "proj-skill", "proyecto");
+  makeSkill(path.join(home, ".claude", "plugins", "cache", "mp", "superpowers", "1.0.0", "skills", "tdd"), "tdd", "plugin claude");
+  makeSkill(path.join(home, ".config", "opencode", "skills", "oc-skill"), "oc-skill", "opencode");
+
+  // claude: TODO nativo (el plugin symlinkea cualquier fuente) → sin bloque de rutas
+  const claude = render.renderPersona({ projectDir: dir, name: "dev", agentName: "architect", persona: { kind: "claude", rol: "x" }, extraSkills: ["superpowers:tdd", "proj-skill"] });
+  assert.deepEqual(claude.skillsByPath, []);
+  assert.ok(claude.promptFile.endsWith(path.join("generated", "prompts", "architect.md")));
+  assert.ok(fs.existsSync(path.join(dir, ".hermad", "generated", "claude", "architect", ".claude-plugin", "plugin.json")));
+  assert.doesNotMatch(fs.readFileSync(claude.promptFile, "utf8"), /## Task skills/);
+
+  // opencode: plugin claude y hermes NO nativas; .claude/skills del proyecto y sus roots SÍ
+  const oc = render.renderPersona({ projectDir: dir, name: "dev", agentName: "architect-2", persona: { kind: "opencode", rol: "x" }, extraSkills: ["superpowers:tdd", "proj-skill", "oc-skill"] });
+  const byName = oc.skillsByPath.map((s) => s.name);
+  assert.ok(byName.includes("superpowers:tdd"), "plugin claude no es nativa de opencode");
+  assert.ok(!byName.includes("proj-skill") && !byName.includes("oc-skill"), "las de opencode/proyecto sí son nativas");
+  const prom = fs.readFileSync(oc.promptFile, "utf8");
+  assert.match(prom, /## Task skills/);
+  assert.ok(prom.includes(path.join(home, ".claude", "plugins", "cache", "mp", "superpowers", "1.0.0", "skills", "tdd", "SKILL.md")));
+  assert.ok(oc.promptFile.endsWith(path.join("generated", "prompts", "architect-2.md")), "no pisa al architect");
+  assert.ok(fs.existsSync(path.join(dir, ".opencode", "agents", "hermad-architect-2.md")));
+
+  // hermes: solo sus roots nativas; el resto por ruta; skillsFound = nativas
+  const hermes = render.renderPersona({ projectDir: dir, name: "dev", agentName: "hermes-dev", persona: { kind: "hermes", rol: "x" }, extraSkills: ["oc-skill"] });
+  assert.deepEqual(hermes.skillsByPath.map((s) => s.name), ["oc-skill"]);
+  assert.deepEqual(hermes.skillsFound, []);
+  assert.match(fs.readFileSync(hermes.promptFile, "utf8"), /## Task skills/);
+});
+
+test("globales efectivas y --skills entran en la allowlist sin duplicados", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-allow-"));
+  const a = render.renderPersona({ projectDir: dir, name: "ghost", persona: { kind: "opencode", rol: "x" }, globs: ["gskill"], extraSkills: ["gskill", "extra"] });
+  assert.deepEqual(a.skillsAllow, ["gskill", "extra"], "dedupe frontmatter ∪ globales ∪ --skills");
 });
