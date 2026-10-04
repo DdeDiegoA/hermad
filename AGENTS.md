@@ -81,6 +81,8 @@
   - Flujo de entrega: cada dev push + `gh pr create`; reviewer revisa la PR; orquestador mergea con `gh pr merge` solo con CI verde + OK del reviewer.
   - CI de main estaba en rojo → story previa HPT-CI (dev-4, skills github-pr-workflow + systematic-debugging) arregla y agrega `npm ci` al workflow.
   - Ola 1 lanzada: dev-1=HPT-CLI-TABLE, dev-2=HPT-CONFIG-PERMS⚠️ (skill cso), dev-3=HPT-DEBTS (systematic-debugging).
+  - Mergeadas: PR #2 HPT-CI (54b48f2, main CI verde), PR #1 HPT-CLI-TABLE (c1dd7cb). En curso: #3 CONFIG-PERMS⚠️ (fix fail-closed, re-review reviewer-2), #4 DEBTS (review), HPT-COMPLETION (dev-1).
+  - Bugs vivos del daemon (los arregla en parte HPT-DEBTS): DONE falso marca stories `done` (CONFIG-PERMS) y `plan-devs` lanza dependientes antes de tiempo; `plan-devs` reutiliza un nombre vivo (dev-2) y pisa `state.agents`; auto-close cierra reviewers con trabajo encolado y devs cuya PR aún necesita rebase; `state.closed` viejo bloquea la entrega (workaround: parar daemon, borrar, reiniciar). Backlog: `safeSkillDir` puede colisionar ids que aplanan igual.
   - BUG vivo: un agente con nombre fuera del patrón `dev-N` (p. ej. `dev-ci`) nunca recibe su buzón, aunque esté idle y fuera de `closed`. Workaround: usar `dev-N`. Además el daemon re-escribe `state.closed` al final del tick y pisa ediciones externas.
 
 ## Reglas del equipo
