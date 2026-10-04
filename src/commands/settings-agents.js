@@ -19,10 +19,12 @@ async function pickPersona(name, current, installedVendors) {
   return { kind: vendor, modelFlag: model.flag, rol: current.rol };
 }
 
-// Única escritura de `settings agents`: la plantilla global. NO toca proyectos
-// (project.json / personas.env / activo) — eso es `settings project`.
-function applyGlobal(personas) {
-  config.save({ personas });
+// Única escritura de `settings agents`: la plantilla global. Guarda el cfg
+// completo (no solo {personas}) para no borrar globalSkills ni claves
+// desconocidas. NO toca proyectos (project.json / personas.env / activo) — eso
+// es `settings project`.
+function applyGlobal(cfg) {
+  config.save(cfg);
 }
 
 async function run(args) {
@@ -59,7 +61,7 @@ async function run(args) {
     }
     cfg.personas[name] = await pickPersona(name, cfg.personas[name], installed);
   }
-  applyGlobal(cfg.personas);
+  applyGlobal(cfg);
   console.log(`\n[+] plantilla global actualizada en ${config.CONFIG_PATH}`);
   console.log("    Para llevar estos vendors a un proyecto: `hermad settings project --from-global`.");
 }
