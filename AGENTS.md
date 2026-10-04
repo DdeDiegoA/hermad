@@ -76,6 +76,8 @@
   - Arreglados en el camino: CI de main roja (safeSkillDir en Windows), auto-close vs `spawn --story`, `state.closed` que no se limpiaba al relanzar ni sobrevivía al write-back, basePersona con alias, colisión de safeSkillDir, test de paridad de completion vacuo.
   - Backlog (no bloqueante): `update` sin `--check`/dry-run; Ctrl-C en update sale 0 en vez de 130; el título del consentimiento no nombra los roles; typo "el modelo el modelo por defecto"; daemon: agentes con nombre fuera de `<persona>-N` no reciben buzón; DONE del reviewer cierra la story (y al dev) antes del merge; reviewers se auto-cierran con cola pendiente; routes van a `reviewer` lógico, no a `reviewer-N`.
 
+- 2026-10-04 — Release **0.3.0** (PR #12, 8386cc0): versión en package.json/lock, `CHANGELOG.md` nuevo (0.2.0 y 0.3.0), README reescrito para usuarios nuevos. Tags `v0.2.0` (f829df8) y `v0.3.0`; GitHub release v0.3.0. Ramas resueltas: en GitHub y local solo queda `main` (todas las `hermad/*` estaban mergeadas; worktrees solo tenían archivos generados).
+
 ## Reglas del equipo
 
 - **Regla inviolable: el orquestador SOLO delega.** Nunca edita código/docs/tests/configs, nunca hace hotfixes (ni urgentes), nunca corre tests ni investiga código: spawnea/manda al peer correcto. Excepciones: comandos hermad/herdr, merges aprobados por el reviewer, AGENTS.md y journal. (Diego, 2026-10-03; horneada en `templates/prompts/orquestador.md`, commands y briefing — CORE-ORQ mergeada, test `test/orquestador-rule.test.js`.)
