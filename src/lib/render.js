@@ -1,6 +1,7 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const prompts = require("./prompts");
 const memory = require("./memory");
 const skills = require("./skills");
@@ -51,6 +52,20 @@ function write(file, content) {
 // SKILL.md (la carpeta es solo fallback), así que renombrarla no la afecta.
 function safeSkillDir(name) {
   return String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, "-").replace(/[. ]+$/, "") || "_";
+}
+
+// Two distinct ids can flatten to the same folder ("superpowers:tdd" vs
+// "superpowers-tdd"): without disambiguating, the second symlink silently
+// overwrites the first. Give EVERY colliding folder a hash suffix (stable,
+// order-independent); a unique name keeps its clean folder.
+function skillFolders(names) {
+  const safe = names.map(safeSkillDir);
+  const counts = new Map();
+  for (const s of safe) counts.set(s, (counts.get(s) || 0) + 1);
+  return names.map((n, i) => {
+    if (counts.get(safe[i]) < 2) return safe[i];
+    return `${safe[i]}-${crypto.createHash("sha1").update(n).digest("hex").slice(0, 6)}`;
+  });
 }
 
 function linkSkill(src, dest) {
@@ -199,7 +214,8 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   const pluginDir = path.join(projectDir, GEN_DIR, "claude", agentKey);
   const pluginSkills = path.join(pluginDir, "skills");
   fs.rmSync(pluginSkills, { recursive: true, force: true });
-  for (const { name: skillName, dir } of found) linkSkill(dir, path.join(pluginSkills, safeSkillDir(skillName)));
+  const folders = skillFolders(found.map((f) => f.name));
+  found.forEach((f, i) => linkSkill(f.dir, path.join(pluginSkills, folders[i])));
   write(
     path.join(pluginDir, ".claude-plugin", "plugin.json"),
     JSON.stringify({ name: `hermad-${agentKey}`, version: "0.0.1", description: `Hermad persona ${name}`, skills: "./skills/", hooks: "./hooks/hooks.json" }, null, 2) + "\n"
@@ -302,4 +318,4 @@ function ensureGitignore(projectDir) {
   return true;
 }
 
-module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor, safeSkillDir, applyPlaceholders, languageName };
+module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor, safeSkillDir, skillFolders, applyPlaceholders, languageName };
