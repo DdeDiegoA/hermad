@@ -54,7 +54,7 @@
 - id: S6
   # C (item 5a/5b): indice cacheado + matcher local + globalSkills. Sin red y sin embeddings.
   depends_on: []
-  files: [src/lib/skills-index.js, src/lib/skills.js, src/lib/config.js, src/commands/skills.js, test/skills-index.test.js, test/suggest.test.js]
+  files: [src/lib/skills-index.js, src/lib/skills.js, src/lib/config.js, src/commands/skills.js, src/commands/settings-agents.js, test/skills-index.test.js, test/suggest.test.js, test/settings-agents.test.js]
   ac: ["Given las skills instaladas, when corro hermad skills list, then sale el indice cacheado en ~/.hermad/cache/skills-index.json con id, name, description, dir y source", "Given cambio el fingerprint de los roots o pasaron 24h, when corro skills list, then reindexa; con --refresh reindexa siempre", "Given hermad skills match con una tarea, when hay candidatas, then devuelve el top-N del ranking BM25-lite local con name x3, description x1 y boost si la skill esta en el frontmatter de la persona", "Given globalSkills en ~/.hermad/config.json, when config se guarda, then las claves desconocidas no se borran", "Given skills global add o rm, when el nombre no existe, then se rechaza salvo --force; las efectivas son global mas add menos remove", "Given skills suggest --global, when Diego confirma en el prompt interactivo, then recien ahi se escribe ~/.hermad/config.json", "Given npm run test, when corre, then hay tests de invalidacion del cache, ranking, exclusion de las globales y preservacion de config"]
 
 - id: S7
