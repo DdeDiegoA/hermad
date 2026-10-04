@@ -39,6 +39,16 @@ test("config bypass: render lo propaga y startPlan agrega los BYPASS_ARGS del ve
   }
 });
 
+test("artifacts sin permissions (o desconocido) falla CERRADO: sin BYPASS_ARGS", () => {
+  for (const permissions of [undefined, "weird"]) {
+    const artifacts = { skillsFound: [], permissions, claude: { pluginDir: "/d", settingsFile: "/s.json" }, opencode: { agentName: "hermad-dev" } };
+    for (const kind of ["claude", "opencode", "hermes", "codex", "gemini"]) {
+      const { args } = vendors.startPlan(kind, "dev", {}, artifacts);
+      for (const flag of vendors.BYPASS_ARGS[kind]) assert.ok(!args.includes(flag), `${kind} no debe llevar ${flag} con permissions=${permissions}`);
+    }
+  }
+});
+
 test("config prompt: sin flags de bypass, pero los deny explícitos siguen", () => {
   writeGlobal({ mode: "prompt", acceptedAt: null });
   const dir = tmpDir("hermad-perm-prompt-");

@@ -116,11 +116,9 @@ const BYPASS_ARGS = {
 };
 
 function startPlan(kind, personaName, persona, artifacts) {
-  // Bypass solo si render lo resolvió a "bypass". Un artifact SIN el campo viene de
-  // un caller que no pasó por render (compat): se mantiene bypass para no regresar.
-  // ponytail: fail-open solo cuando el campo falta; render siempre lo setea, y
-  // HPT-PROMPTS (dueño de test/render.test.js) puede endurecerlo a `=== "bypass"`.
-  const bypass = !artifacts || artifacts.permissions === undefined ? true : artifacts.permissions === "bypass";
+  // Bypass SOLO si render lo resolvió explícitamente a "bypass". Cualquier otro
+  // valor (prompt, ausente o desconocido) falla CERRADO: nunca BYPASS_ARGS.
+  const bypass = Boolean(artifacts && artifacts.permissions === "bypass");
   const modelFlags = [
     ...(Array.isArray(persona.modelFlag) ? persona.modelFlag : (persona.modelFlag || "").split(" ").filter(Boolean)),
     ...(bypass ? BYPASS_ARGS[kind] || [] : []),

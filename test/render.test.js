@@ -41,9 +41,9 @@ test("deja /hermad y /hermad:orchestrate en el proyecto y define HERMAD_AGENT", 
   assert.equal(settings.env.HERMAD_AGENT, "orquestador");
 });
 
-test("todo agente arranca con bypass de permisos por vendor", () => {
+test("con permissions bypass, cada vendor recibe sus BYPASS_ARGS", () => {
   const vendors = require("../src/lib/vendors");
-  const artifacts = { skillsFound: [], promptFile: "/p.md", promptBody: "x", claude: { pluginDir: "/d", settingsFile: "/s.json" }, opencode: { agentName: "hermad-dev" } };
+  const artifacts = { permissions: "bypass", skillsFound: [], promptFile: "/p.md", promptBody: "x", claude: { pluginDir: "/d", settingsFile: "/s.json" }, opencode: { agentName: "hermad-dev" } };
   const persona = { modelFlag: "--model sonnet" };
   for (const kind of ["claude", "opencode", "hermes", "codex", "gemini"]) {
     const { args } = vendors.startPlan(kind, "dev", persona, artifacts);
