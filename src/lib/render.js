@@ -16,6 +16,15 @@ function write(file, content) {
   fs.writeFileSync(file, content);
 }
 
+// Windows no admite ':' ni otros caracteres en un nombre de carpeta: los ids de
+// skill namespaceados ("plugin:skill") se aplanan a un nombre de path legal. Se
+// aplica en todas las plataformas para que el artefacto sea idéntico en cualquier OS.
+// El nombre con el que claude expone la skill sale del frontmatter `name` del
+// SKILL.md (la carpeta es solo fallback), así que renombrarla no la afecta.
+function safeSkillDir(name) {
+  return String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, "-").replace(/[. ]+$/, "") || "_";
+}
+
 function linkSkill(src, dest) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.rmSync(dest, { recursive: true, force: true });
@@ -129,7 +138,7 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   const pluginDir = path.join(projectDir, GEN_DIR, "claude", agentKey);
   const pluginSkills = path.join(pluginDir, "skills");
   fs.rmSync(pluginSkills, { recursive: true, force: true });
-  for (const { name: skillName, dir } of found) linkSkill(dir, path.join(pluginSkills, skillName));
+  for (const { name: skillName, dir } of found) linkSkill(dir, path.join(pluginSkills, safeSkillDir(skillName)));
   write(
     path.join(pluginDir, ".claude-plugin", "plugin.json"),
     JSON.stringify({ name: `hermad-${agentKey}`, version: "0.0.1", description: `Hermad persona ${name}`, skills: "./skills/", hooks: "./hooks/hooks.json" }, null, 2) + "\n"
@@ -231,4 +240,4 @@ function ensureGitignore(projectDir) {
   return true;
 }
 
-module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor };
+module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor, safeSkillDir };

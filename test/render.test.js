@@ -88,6 +88,13 @@ test("render separa skills nativas de por-ruta según el vendor (agentName keyea
   assert.ok(claude.promptFile.endsWith(path.join("generated", "prompts", "architect.md")));
   assert.ok(fs.existsSync(path.join(dir, ".hermad", "generated", "claude", "architect", ".claude-plugin", "plugin.json")));
   assert.doesNotMatch(fs.readFileSync(claude.promptFile, "utf8"), /## Task skills/);
+  // El id namespaceado "superpowers:tdd" no puede ser nombre de carpeta en Windows.
+  const genSkills = fs.readdirSync(path.join(dir, ".hermad", "generated", "claude", "architect", "skills"));
+  assert.ok(
+    genSkills.length && genSkills.every((n) => !/[:<>"\\/|?*\x00-\x1f]/.test(n)),
+    `nombres de skill legales en Windows, got: ${JSON.stringify(genSkills)}`
+  );
+  assert.ok(genSkills.includes(render.safeSkillDir("superpowers:tdd")), "el namespace conserva una carpeta");
 
   // opencode: plugin claude y hermes NO nativas; .claude/skills del proyecto y sus roots SÍ
   const oc = render.renderPersona({ projectDir: dir, name: "dev", agentName: "architect-2", persona: { kind: "opencode", rol: "x" }, extraSkills: ["superpowers:tdd", "proj-skill", "oc-skill"] });
