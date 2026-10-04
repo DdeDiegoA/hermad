@@ -5,7 +5,7 @@ const vendors = require("../lib/vendors");
 const herdr = require("../lib/herdr");
 const daemon = require("../lib/daemon");
 const placement = require("../lib/placement");
-const { startAgentSafe } = require("../lib/orchestrator");
+const agents = require("../lib/agents");
 
 // Único camino para que un agente (o un humano) dropee otro agente: pasa por
 // render + vendors.startPlan, así hereda persona, skills, memoria y bypass de
@@ -65,8 +65,11 @@ function run(args) {
   }
 
   const artifacts = render.renderPersona({ projectDir: project.projectDir, agentName: name, name: persona, persona: p, compactPct: project.compactPct || 50 });
-  startAgentSafe(name, p, paneId, vendors.startPlan(p.kind, persona, p, artifacts));
-  console.log(`[+] ${name} (${persona}, ${p.kind}) en ${paneId}`);
+  const plan = vendors.startPlan(p.kind, persona, p, artifacts);
+  // Único camino de arranque: agents.start resuelve el alias si `name` está tomado
+  // en otro workspace y registra state.agents[name] (nombre lógico → vivo).
+  const live = agents.start({ project, logical: name, persona, kind: p.kind, paneId, args: plan.args, promptText: plan.promptText });
+  console.log(`[+] ${name} (${persona}, ${p.kind}) en ${paneId}${live !== name ? ` — vivo ${live}` : ""}`);
 }
 
 module.exports = { run };
