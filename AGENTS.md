@@ -52,6 +52,13 @@
   - **F8**: `hermad skills suggest <persona>` (match LLM sobre skills instaladas; solo propone).
   - Tests: `npm test` → 14/14 (`node --test`). Docs: `docs/vendors.md`, `SKILL.md`, `docs/system-prompts-design.md` (marcado superado).
 
+- 2026-10-03 — Épica "mejoras 2026-10" (track standard) — PLAN listo, esperando gate de Diego:
+  - Brief+decisiones: `docs/mejoras-2026-10.md`; mapa: `docs/mejoras-2026-10-map.md`; diseño: `docs/mejoras-2026-10-design.md`; `SPEC.md` + `stories.yaml` (S1–S7) en la raíz.
+  - Decisiones: alias `<proyecto>-<persona>` si el nombre está tomado (todos los agentes; buzón/rutas siguen lógicos vía `src/lib/agents.js`); auto-close = DONE + idle (nunca orquestador, ni buzón pendiente, ni dev con story abierta); tab default → `gerencia`; departamento garantizado (reader → producto); skills híbridas (spawn hornea / send adjunta rutas SKILL.md) + matcher local + `globalSkills` sugeridas y confirmadas.
+  - Ola 1: S1 (lock state.json) · S2 (wrappers herdr + CLI) · S6 (índice/matcher/globalSkills). Después S3 → S4/S5/S7.
+  - BUG vivo (pm, verificado): `herdr.agentRead` hace JSON.parse sobre texto plano → el daemon nunca procesa marcadores; rutas y watchdog muertos en vivo. Fix en S2. Hasta entonces, handoffs a mano.
+  - `reader` agregado a `producto` en `.hermad/project.json` (el spawn fallaba: bug #3 en vivo).
+
 ## Reglas del equipo
 
 - Política de aprobación: auto, salvo auth/dinero/DB/seguridad → escala a Diego.

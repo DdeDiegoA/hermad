@@ -1,0 +1,64 @@
+# stories.yaml — Mejoras hermad 2026-10
+# Schema: id / depends_on / files / ac (lo que parsea src/lib/stories.js).
+# files = rutas repo-relativas; selectParallel evita solape entre stories paralelas.
+# Tracks del diseño: A0=S1, hdr/cli=S2, A=S3a+S3b+S3c+S4, B=S5, C=S6, D=S7.
+# S3c y S7 comparten templates/prompts/orquestador.md -> S7 depende de S3c (serializado a propósito).
+
+- id: S1
+  # A0 (D0c): lock + escritura atómica de state.json. Va primero: con alias y auto-close la carrera deja de ser teórica.
+  depends_on: []
+  files: [src/lib/daemon.js, test/daemon.test.js]
+  ac: ["Given el daemon y el CLI escribiendo a la vez, when el segundo toma el lock, then reintenta hasta 2s y ningun cambio escrito en el medio se pierde", "Given un lockfile stale de mas de 10s, when un proceso intenta lockear, then lo considera abandonado y sigue", "Given se muta el estado, when se persiste, then escribe con tmp mas rename y el JSON nunca queda truncado", "Given loadState sobre un state.json viejo o ausente, when lo lee, then completa los defaults de siempre sin romper la forma", "Given npm run test, when corre la suite, then un test nuevo prueba que una clave escrita entre el load y el save sobrevive"]
+
+- id: S2
+  # Wrappers herdr que faltan (paneClose para el auto-close, tabRename para gerencia) + superficie CLI en un solo lugar.
+  # BUG verificado en vivo (2026-10-04): herdr.agentRead usa call() y hace JSON.parse, pero `herdr agent read`
+  # imprime TEXTO plano (--format text|ansi; nunca JSON) -> tira "respuesta no-JSON", el daemon lo traga con
+  # catch y sigue -> state.screens queda vacio y processMarkers NUNCA corre: las rutas HERMAD:DONE|BUG|STORIES_READY
+  # y el watchdog de compact estan muertos en vivo (18/18 tests verdes porque el io del daemon esta stubbeado).
+  # Deja el case agents en cli.js: el modulo src/commands/agents.js lo crea S3.
+  depends_on: []
+  files: [src/lib/herdr.js, src/cli.js, test/herdr.test.js]
+  ac: ["Given herdr 0.9, when llamo paneClose(paneId) o tabRename(tabId, label), then el wrapper ejecuta el comando correcto y un fallo de herdr no tira excepcion", "Given herdr agent read devuelve texto plano, when agentRead lo devuelve, then NO hace JSON.parse y devuelve el texto crudo del pane", "Given el io real del daemon, when lee la pantalla de un agente vivo, then obtiene texto (no excepcion) y el daemon llega a processMarkers", "Given cli.js, when corro hermad --help, then la ayuda lista hermad agents, spawn --skills, send --skills y skills list|match|suggest|global", "Given argv empieza con agents, when el switch lo despacha, then requiere ./commands/agents de forma lazy y no responde comando desconocido", "Given npm run test, when corre, then los wrappers se testean con execFileSync stub, sin herdr real"]
+
+- id: S3a
+  # A (item 1) núcleo: lib/agents.js (nombre lógico ↔ vivo, alias <proyecto>-<persona>) + comando hermad agents.
+  depends_on: [S1, S2]
+  files: [src/lib/agents.js, src/commands/agents.js, test/agents.test.js]
+  ac: ["Given el nombre logico esta libre, when agents.start arranca, then el nombre vivo es el logico y state.agents[logico] queda con live, persona, kind, paneId, workspaceId y skills", "Given el nombre logico esta tomado en otro workspace, when agents.start arranca, then usa el slug del proyecto mas el logico y reintenta una sola vez si hay carrera agent_name_taken", "Given el alias tambien esta tomado, when agents.start falla, then el error nombra los dos nombres y no se agregan sufijos numericos", "Given npm run test, when corre, then test/agents.test.js cubre libre, tomado, reuso, carrera, alias tomado, logicalOf y liveName", "Given hermad agents, when lo corro, then lista logico, vivo, persona, kind y pane de cada agente del proyecto"]
+
+- id: S3b
+  # A (item 1) consumidores: daemon, spawn, send y plan-devs usan agents.js.
+  depends_on: [S3a]
+  files: [src/lib/daemon.js, src/commands/spawn.js, src/commands/send.js, src/commands/plan-devs.js, test/daemon.test.js, test/plan-devs.test.js]
+  ac: ["Given un agente vivo con alias, when el daemon corre el tick, then resuelve logicalOf y entrega buzon, marcadores y compact contra el nombre vivo, con el buzon en .hermad/inbox/<logico>", "Given una entrada de state.agents cuyo live no aparece en agent list durante 3 ticks, when el daemon corre, then la poda", "Given hermad send con un nombre vivo, when se encola, then lo normaliza a logico antes de escribir el buzon", "Given plan-devs, when arranca dev-N, then usa agents.start y registra el map en state.agents", "Given hermad spawn, when arranca un agente, then usa agents.start y respeta el alias", "Given npm run test, when corre, then daemon y plan-devs tienen casos con alias"]
+
+- id: S3c
+  # A (item 1) textos: prompts de persona y comandos mandan resolver el nombre vivo con hermad agents.
+  depends_on: [S3a]
+  files: [templates/prompts/analyst.md, templates/prompts/architect.md, templates/prompts/dev.md, templates/prompts/orquestador.md, templates/prompts/pm.md, templates/prompts/reader.md, templates/prompts/reviewer.md, templates/prompts/ux.md, command/hermad.md, command/orchestrate.md]
+  ac: ["Given los prompts de persona y los comandos, when un agente necesita un peer, then el texto manda resolver el nombre vivo con hermad agents", "Given el prompt del orquestador, when delega, then dice siempre hermad send y nunca agent prompt a un worker"]
+
+- id: S4
+  # A (item 2): auto-close. Cinco condiciones + guardia de story para no cerrar un dev-N antes del DONE del reviewer.
+  depends_on: [S3b, S2]
+  files: [src/lib/daemon.js, test/daemon.test.js]
+  ac: ["Given un agente que emitio HERMAD:DONE y esta idle en 2 ticks seguidos, when corre el tick, then el daemon cierra su pane y lo registra en closed", "Given el agente es el orquestador o su persona es orquestador, when corre el tick, then nunca se cierra", "Given tiene mensajes pendientes en su buzon, when corre el tick, then no se cierra", "Given su DONE es anterior a la ultima entrega del buzon, when corre el tick, then no se cierra", "Given el agente es dueño de una story, when la story no esta done, then no se cierra ni con DONE del dev", "Given pane close falla con not-found o unknown, when corre el tick, then igual se marca cerrado; con cualquier otro error se loguea y se reintenta en el proximo tick", "Given aparece un mensaje en el buzon de un logico cerrado, when corre el tick, then avisa una sola vez al orquestador que hay que respawnearlo", "Given project.autoClose en false, when corre el tick, then no cierra a nadie", "Given npm run test, when corre, then hay un caso por cada condicion negada mas la idempotencia del cierre"]
+
+- id: S5
+  # B (items 3 y 4): un solo choke point para el tab de departamento y el tab del orquestador renombrado a gerencia.
+  depends_on: [S3a, S2]
+  files: [src/lib/placement.js, src/lib/personas-env.js, src/lib/orchestrator.js, test/placement.test.js]
+  ac: ["Given una persona sin departamento explicito en el proyecto, when resuelvo su tab, then cae en DEFAULT_DEPARTAMENTOS con reader en producto y dev-3 normalizado a desarrollo, y nunca devuelve null si hay departamentos", "Given los dos intentos de mover el pane fallan, when paneForAgent termina, then cierra el pane temporal y devuelve null para que el caller aborte con mensaje claro", "Given departamentos trae la etiqueta gerencia como tab de workers, when cargo el proyecto, then esa entrada se ignora con aviso", "Given bootstrap crea el workspace, when renombra el tab default, then queda gerencia y un fallo de herdr solo loguea", "Given bootstrap arranca agentes, when usa agents.start, then el roster del briefing muestra logico a vivo cuando difieren", "Given npm run test, when corre, then test/placement.test.js cubre reader sin departamentos, dev-3, gerencia ignorada y fallo del move con pane cerrado"]
+
+- id: S6
+  # C (item 5a/5b): indice cacheado + matcher local + globalSkills. Sin red y sin embeddings.
+  depends_on: []
+  files: [src/lib/skills-index.js, src/lib/skills.js, src/lib/config.js, src/commands/skills.js, test/skills-index.test.js, test/suggest.test.js]
+  ac: ["Given las skills instaladas, when corro hermad skills list, then sale el indice cacheado en ~/.hermad/cache/skills-index.json con id, name, description, dir y source", "Given cambio el fingerprint de los roots o pasaron 24h, when corro skills list, then reindexa; con --refresh reindexa siempre", "Given hermad skills match con una tarea, when hay candidatas, then devuelve el top-N del ranking BM25-lite local con name x3, description x1 y boost si la skill esta en el frontmatter de la persona", "Given globalSkills en ~/.hermad/config.json, when config se guarda, then las claves desconocidas no se borran", "Given skills global add o rm, when el nombre no existe, then se rechaza salvo --force; las efectivas son global mas add menos remove", "Given skills suggest --global, when Diego confirma en el prompt interactivo, then recien ahi se escribe ~/.hermad/config.json", "Given npm run test, when corre, then hay tests de invalidacion del cache, ranking, exclusion de las globales y preservacion de config"]
+
+- id: S7
+  # D (item 5a entrega): skills por tarea, por vendor, con artefactos por agentName (dos agentes de la misma persona no se pisan).
+  depends_on: [S3b, S3c, S6]
+  files: [src/lib/render.js, src/commands/spawn.js, src/commands/send.js, templates/prompts/orquestador.md, docs/vendors.md, test/render.test.js, test/send-skills.test.js]
+  ac: ["Given hermad spawn <persona> --skills a,b, when se arma la allowlist, then es frontmatter mas globales efectivas mas --skills sin duplicados, y se hornea segun vendor: plugin de claude, permission.skill de opencode, --skills de hermes", "Given una skill que el vendor no carga de forma nativa, when render termina, then agrega el bloque de rutas SKILL.md al prompt del agente", "Given hermad send con --skills, when se encola, then el mensaje lleva las rutas absolutas de los SKILL.md y una skill inexistente solo genera warning", "Given dos agentes de la misma persona con skills distintas, when render escribe, then los artefactos van por agentName en generated/claude/<agent>, prompts/<agent>.md y .opencode/agents/hermad-<agent>.md", "Given el agente lee las rutas con su propia herramienta, when necesita una skill de tarea, then no depende del tool Skill ni de recarga en caliente", "Given npm run test, when corre, then test/render.test.js cubre el split nativo contra por-ruta y test/send-skills.test.js el bloque de rutas del mensaje"]
