@@ -68,6 +68,10 @@
   - `bmad-help` movida de global a proyecto (`project.json` → `skills.add`), porque es project-scoped: globales = 5 (caveman, ponytail, herdr-bmad, karpathy-guidelines, graphify); en proyectos con BMad agregar `hermad skills global add bmad-help --project`.
   - Skills por tarea: el orquestador corre `hermad skills match` antes de CADA delegación y pasa todas las relevantes con `--skills` (sin tope), y las reporta.
 
+- 2026-10-04 — Épica "hermad para todos" (track full) — fase analyst en curso:
+  - Decisiones de Diego: (1) skills = pack base de hermad + descubrir las del usuario en el setup (suggest + confirmación), nada atado a la máquina de Diego; (2) completion de comandos y flags para zsh, bash, fish y PowerShell; (3) TUI = wizard simple (prompts guiados: instalar, setup, update), deps mínimas.
+  - analyst (skills de tarea: bmad-deep-recon, project-bootstrap, agent-tooling-bootstrap) → `docs/hermad-para-todos-research.md`. Siguiente: pm (brief/PRD) → architect → ux (wizard) → pm (stories).
+
 ## Reglas del equipo
 
 - **Regla inviolable: el orquestador SOLO delega.** Nunca edita código/docs/tests/configs, nunca hace hotfixes (ni urgentes), nunca corre tests ni investiga código: spawnea/manda al peer correcto. Excepciones: comandos hermad/herdr, merges aprobados por el reviewer, AGENTS.md y journal. (Diego, 2026-10-03; horneada en `templates/prompts/orquestador.md`, commands y briefing — CORE-ORQ mergeada, test `test/orquestador-rule.test.js`.)
