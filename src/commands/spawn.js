@@ -1,4 +1,5 @@
 "use strict";
+const { execFileSync } = require("child_process");
 const { resolveProject } = require("../lib/project");
 const render = require("../lib/render");
 const vendors = require("../lib/vendors");
@@ -6,6 +7,30 @@ const herdr = require("../lib/herdr");
 const daemon = require("../lib/daemon");
 const placement = require("../lib/placement");
 const agents = require("../lib/agents");
+
+// Branch del cwd donde corre `spawn` (o null si no es un repo git). Se guarda en
+// la story para que el aviso al orquestador pueda ubicar el trabajo (FR-8.4).
+function currentBranch(dir = process.cwd()) {
+  try {
+    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+// Registro de ownership de `spawn --story` (FR-8.1): mismo formato que plan-devs
+// + source. Si la story ya es de otro dev, tira: el ownership no se pisa.
+function assignStory(state, { storyId, dev, branch }) {
+  state.stories = state.stories || {};
+  const prev = state.stories[storyId];
+  if (prev && prev.dev && prev.dev !== dev) {
+    const err = new Error(`story ${storyId} ya asignada a ${prev.dev} — no piso el ownership`);
+    err.code = "story_owned";
+    throw err;
+  }
+  state.stories[storyId] = { dev, branch: branch || null, status: "assigned", source: "spawn" };
+  return state.stories[storyId];
+}
 
 // Único camino para que un agente (o un humano) dropee otro agente: pasa por
 // render + vendors.startPlan, así hereda persona, skills, memoria y bypass de
@@ -15,9 +40,9 @@ function run(args) {
     const i = args.indexOf(flag);
     return i >= 0 ? args[i + 1] : null;
   };
-  const persona = args.find((a, i) => !a.startsWith("--") && !["--name", "--pane", "--kind", "--model", "--skills"].includes(args[i - 1]));
+  const persona = args.find((a, i) => !a.startsWith("--") && !["--name", "--pane", "--kind", "--model", "--skills", "--story"].includes(args[i - 1]));
   if (!persona) {
-    console.error("Uso: hermad spawn <persona> [--name <agente>] [--pane <pane_id>] [--kind <vendor>] [--model <id>] [--skills a,b]");
+    console.error("Uso: hermad spawn <persona> [--name <agente>] [--pane <pane_id>] [--kind <vendor>] [--model <id>] [--skills a,b] [--story <id>]");
     process.exit(1);
   }
   const project = resolveProject();
@@ -42,17 +67,29 @@ function run(args) {
   const extraSkills = skillsArg ? skillsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const p = { ...base, kind, modelFlag: model ? vendors.modelFlagFor(kind, model) : base.modelFlag };
   const name = opt("--name") || (opt("--kind") || opt("--model") ? `${persona}-${kind}` : persona);
+  const storyId = opt("--story");
+  const state = daemon.loadState(project.projectDir);
+
+  // FR-8.1: el ownership se chequea ANTES de arrancar — no se dropea el agente
+  // para después descubrir que la story era de otro.
+  if (storyId) {
+    const prev = state.stories && state.stories[storyId];
+    if (prev && prev.dev && prev.dev !== name) {
+      console.error(`story ${storyId} ya asignada a ${prev.dev} — no piso el ownership (usá --name ${prev.dev} o cerrá esa pata)`);
+      process.exit(1);
+    }
+  }
 
   // Sin --pane: `placement.paneForAgent` lo ubica SOLO en el tab de su
   // departamento (lo crea si no existe). Nunca cae en el tab default junto al
   // orquestador/daemon.
   let paneId = opt("--pane");
   if (!paneId) {
-    const { daemonPaneId, workspaceId } = daemon.loadState(project.projectDir);
     paneId = placement.paneForAgent(project, persona, {
-      workspaceId,
-      daemonPaneId,
+      workspaceId: state.workspaceId,
+      daemonPaneId: state.daemonPaneId,
       cwd: project.projectDir,
+      state,
       tabList: herdr.tabList,
       tabCreate: herdr.tabCreate,
       paneList: herdr.paneList,
@@ -71,7 +108,13 @@ function run(args) {
   // Único camino de arranque: agents.start resuelve el alias si `name` está tomado
   // en otro workspace y registra state.agents[name] (nombre lógico → vivo).
   const live = agents.start({ project, logical: name, persona, kind: p.kind, paneId, args: plan.args, promptText: plan.promptText, skills: artifacts.skillsAllow });
-  console.log(`[+] ${name} (${persona}, ${p.kind}) en ${paneId}${live !== name ? ` — vivo ${live}` : ""}`);
+  // Registro tras el alta (design §8): la guarda de story de maybeClose ya mira
+  // state.stories[].dev, así que el auto-close no cierra antes del DONE del reviewer.
+  if (storyId) {
+    const branch = currentBranch(process.cwd());
+    daemon.updateState(project.projectDir, (st) => assignStory(st, { storyId, dev: name, branch }));
+  }
+  console.log(`[+] ${name} (${persona}, ${p.kind}) en ${paneId}${live !== name ? ` — vivo ${live}` : ""}${storyId ? ` · story ${storyId}` : ""}`);
 }
 
-module.exports = { run };
+module.exports = { run, assignStory, currentBranch };
