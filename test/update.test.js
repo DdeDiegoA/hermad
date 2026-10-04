@@ -118,6 +118,7 @@ test("update método desconocido: imprime los dos comandos manuales y no rompe (
   assert.match(out(), /npm install -g github:DdeDiegoA\/hermad/);
   // el path puede venir con nombre corto en Windows → no lo metemos en un RegExp
   assert.ok(out().includes("git -C ") && out().includes("pull --ff-only"), "imprime el comando de clone");
+  assert.doesNotMatch(out(), /Detected installation/, "ux §11: el aviso arranca sin la línea de método");
 });
 
 test("update muestra actual vs disponible y el comando exacto antes de confirmar (FR-3.7)", async () => {

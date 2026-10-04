@@ -75,9 +75,9 @@ async function run(args = [], deps = {}) {
   const out = (s) => io.stdout.write(s + "\n");
 
   const method = detect({ repoRoot, fsImpl });
-  out(tr("update.method", { method: methodLabel(lang, method) }));
 
-  // Método desconocido: no adivino, imprimo los dos comandos manuales y salgo 0.
+  // Método desconocido: no adivino, imprimo los dos comandos manuales y salgo 0
+  // (ux §11: arranca en el aviso, sin la línea "Instalación detectada").
   if (method === "unknown") {
     out(tr("update.unknown.title"));
     out("  " + tr("update.unknown.body"));
@@ -86,6 +86,7 @@ async function run(args = [], deps = {}) {
     out("  " + tr("update.unknown.next"));
     return { method, updated: false };
   }
+  out(tr("update.method", { method: methodLabel(lang, method) }));
 
   const current = currentVersion({ repoRoot, fsImpl });
   let available = null;
