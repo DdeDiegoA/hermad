@@ -276,6 +276,10 @@ function processMarkers(project, agentName, personaKey, text, state, io) {
     if (seen[key]) continue;
     seen[key] = true;
     applyRoute(project, { fromPersona: personaKey, fromAgent: agentName, event: mk.event, story: mk.story, extra: mk.extra }, state, io);
+    // Señal de auto-close (S4): el agente emitió un DONE nuevo → quedó libre.
+    if (mk.event === "DONE" && state.agents && state.agents[agentName]) {
+      state.agents[agentName].doneAt = Date.now();
+    }
     acted++;
   }
   const keys = Object.keys(seen);
@@ -289,6 +293,51 @@ function processMarkers(project, agentName, personaKey, text, state, io) {
   return acted;
 }
 
+// Un `pane close` que falla porque el pane ya no existe no es un fallo: el
+// objetivo (pane cerrado) está cumplido. Cualquier otro código es transitorio.
+const IGNORABLE_CLOSE_CODE = /not.?found|unknown|missing|no.?pane|invalid/i;
+
+// S4: ¿este agente ya terminó y se puede cerrar? Todas las condiciones, en orden.
+function maybeClose(project, agent, logical, personaKey, state) {
+  if (project.autoClose === false) return false;
+  // El orquestador (o cualquiera con su persona) nunca se cierra.
+  if (logical === "orquestador" || personaKey === "orquestador") return false;
+  if (agent.agent_status !== "idle") return false;
+  const entry = state.agents[logical];
+  if (!entry) return false;
+  // Sin workspaceId no podemos afirmar que el pane es de este proyecto (state
+  // viejo): con un homónimo de otro workspace cerraríamos el agente ajeno.
+  if (!state.workspaceId || agent.workspace_id !== state.workspaceId) return false;
+  if ((entry.idleTicks || 0) < 2) return false;
+  const doneAt = entry.doneAt || 0;
+  if (!doneAt || doneAt <= (entry.lastDeliveredAt || 0)) return false;
+  if (pendingFiles(project.projectDir, logical).length > 0) return false;
+  // Guardia de story: un dev-N dueño de una story abierta no se cierra ni con su
+  // DONE (el DONE del dev es handoff; el cierre llega con el DONE del reviewer).
+  const owned = Object.entries(state.stories || {}).filter(([, s]) => s && s.dev === logical);
+  if (owned.some(([, s]) => s.status !== "done")) return false;
+  return true;
+}
+
+// Cierra el pane y marca `closed`. not-found/unknown → cerrado igual; otro error
+// → log y se reintenta en el próximo tick. Devuelve true si quedó cerrado.
+function closePane(logical, live, persona, paneId, state, io) {
+  let res;
+  try {
+    res = io.paneClose(paneId);
+  } catch (err) {
+    res = { ok: false, code: err.code || err.message };
+  }
+  if (res && (res.ok || IGNORABLE_CLOSE_CODE.test(res.code || ""))) {
+    state.closed[logical] = { at: Date.now(), live, paneId, persona };
+    delete state.agents[logical];
+    io.log(`[-] cerré ${logical}`);
+    return true;
+  }
+  io.log(`[!] cerré ${logical}: paneClose falló (${(res && res.code) || "sin code"}); reintento próximo tick`);
+  return false;
+}
+
 // Un ciclo de poll. io inyectable para test:
 //   { agentList, agentRead, agentPrompt, send, log }
 function runOnce(project, io) {
@@ -297,6 +346,9 @@ function runOnce(project, io) {
   // logicalOf reusa el state ya cargado (sin otra lectura a disco ni io.loadState).
   const fromState = { loadState: () => state };
   let acted = 0;
+  // Lógicos que este tick cerró: al final hay que darlos de baja también de la
+  // copia fresca (el CLI es el dueño del alta, el daemon del baja).
+  const closedNow = [];
 
   const list = io.agentList();
   const allLive = new Set(list.map((a) => a.name));
@@ -323,6 +375,8 @@ function runOnce(project, io) {
           try {
             io.agentPrompt(live, msg.text);
             markDone(project.projectDir, logical, msg.file);
+            // Señal de auto-close (S4): le entregamos trabajo después de su DONE.
+            if (state.agents[logical]) state.agents[logical].lastDeliveredAt = Date.now();
             acted++;
           } catch (err) {
             io.log(`[!] entrega a ${logical} falló (${err.code || err.message}); dejo el mensaje en el buzón`);
@@ -358,10 +412,40 @@ function runOnce(project, io) {
           }
         }
       }
+
+      // Auto-close (S4): idle 2 ticks seguidos + un DONE nuevo + buzón vacío +
+      // workspace propio + story (si es dueño) done. `idleTicks` se resetea en
+      // cuanto el agente deja de estar idle.
+      const entry = state.agents[logical];
+      if (entry) {
+        entry.idleTicks = status === "idle" ? (entry.idleTicks || 0) + 1 : 0;
+        if (maybeClose(project, agent, logical, personaKey, state)) {
+          const paneId = agent.pane_id || entry.paneId;
+          if (closePane(logical, live, personaKey, paneId, state, io)) {
+            closedNow.push(logical);
+            acted++;
+          }
+        }
+      }
     } catch (err) {
       // Un agente problemático no debe tumbar el tick para todos los demás.
       io.log(`[!] agente ${live} falló en el tick (${err.message || err}); sigo con el resto`);
     }
+  }
+
+  // Aviso único (S4): llegó algo al buzón de un lógico ya cerrado → el
+  // orquestador tiene que respawnearlo. `notifiedAt` evita repetir el aviso.
+  for (const [logical, c] of Object.entries(state.closed || {})) {
+    if (!c || c.notifiedAt) continue;
+    const n = pendingFiles(project.projectDir, logical).length;
+    if (!n) continue;
+    c.notifiedAt = Date.now();
+    io.send({
+      from: "daemon",
+      to: "orquestador",
+      text: `${logical} está cerrado y tiene ${n} mensaje(s) — hermad spawn ${c.persona || logical} --name ${logical}`,
+    });
+    acted++;
   }
 
   // Las llamadas lentas a herdr ya pasaron: ahora, bajo lock, tomamos una
@@ -394,6 +478,20 @@ function runOnce(project, io) {
         io.log(`[-] podo ${logical} (${entry && entry.live} no aparece hace 3 ticks)`);
       }
     }
+    // Campos de agentes que el daemon posee (doneAt, lastDeliveredAt, idleTicks):
+    // se copian sobre entradas que el CLI ya tiene, nunca crean una.
+    for (const [logical, entry] of Object.entries(state.agents || {})) {
+      const target = fresh.agents[logical];
+      if (!target) continue;
+      for (const k of ["doneAt", "lastDeliveredAt", "idleTicks"]) {
+        if (entry[k] !== undefined) target[k] = entry[k];
+      }
+    }
+    // Bajas por auto-close: el pane ya se cerró, el registro también se va.
+    for (const logical of closedNow) {
+      delete fresh.agents[logical];
+      delete fresh.agentMiss[logical];
+    }
   });
   return acted;
 }
@@ -403,6 +501,7 @@ function defaultIo() {
     agentList: () => herdr.agentList(),
     agentRead: (name, opts) => herdr.agentRead(name, opts),
     agentPrompt: (name, text) => herdr.agentPrompt(name, text),
+    paneClose: (paneId) => herdr.paneClose(paneId),
     send: ({ from, to, text }) => send(process.cwd(), { from, to, text }),
     log: (msg) => console.log(msg),
   };
