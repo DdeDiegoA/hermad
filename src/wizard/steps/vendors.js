@@ -27,11 +27,9 @@ function vendorOptions(installed, tr) {
 async function pickModel(ctx, ui, kind) {
   const tr = ctx.t;
   if (ctx.flags.model) return vendors.modelFlagFor(kind, ctx.flags.model);
-  if (ui.mode === "headless") {
-    // ux §13: sin --model, cada vendor usa su propio default (hermad no elige).
-    await ui.note(tr("model.note"));
-    return "";
-  }
+  // ux §13: sin --model, cada vendor usa su propio default (hermad no elige). El
+  // aviso lo imprime collect UNA vez (no una por vendor).
+  if (ui.mode === "headless") return "";
   const models = vendors.modelsFor(kind);
   const options = [
     ...models.map((m) => ({ value: m.flag, label: m.label })),
@@ -70,8 +68,12 @@ async function collect(ctx, ui) {
     }
   }
 
+  const kinds = [...new Set(Object.values(map))];
+  // El aviso de "hermad no elige modelos" se imprime una sola vez, aunque haya
+  // varios vendors (ux §13).
+  if (ui.mode === "headless" && !ctx.flags.model) await ui.note(tr("model.note"));
   const modelFlags = {};
-  for (const kind of [...new Set(Object.values(map))]) modelFlags[kind] = await pickModel(ctx, ui, kind);
+  for (const kind of kinds) modelFlags[kind] = await pickModel(ctx, ui, kind);
 
   ctx.personas = {};
   for (const p of personas) {

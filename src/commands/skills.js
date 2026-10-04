@@ -1,5 +1,6 @@
 "use strict";
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { resolveProject, PROJECT_REL } = require("../lib/project");
@@ -8,6 +9,7 @@ const skillsIndex = require("../lib/skills-index");
 const discovery = require("../lib/discovery");
 const config = require("../lib/config");
 const prompts = require("../lib/prompts");
+const pack = require("../lib/pack");
 const prompt = require("../lib/prompt");
 
 // Skills: índice cacheado (`list`), matcher local (`match`) y globalSkills
@@ -157,13 +159,22 @@ function global(args) {
 
 // --- suggest ----------------------------------------------------------------
 
-function buildSuggestPrompt({ personaName, body, current, installed }) {
+// Skills proponibles: fuera del pack base (herdr-bmad) y fuera de las globales
+// ya efectivas — no tiene sentido volver a sugerir lo que ya está activo.
+function proposable(list, globals, home = os.homedir()) {
+  const g = new Set(globals || []);
+  return list.filter((s) => !pack.isPackSkill(s.dir, home) && !g.has(s.id) && !g.has(s.name));
+}
+
+// Al LLM solo le va el nombre + el rol en una línea de la persona: el cuerpo del
+// prompt nunca sale de la máquina (misma regla que discovery.buildLLMPrompt).
+function buildSuggestPrompt({ personaName, role, current, installed }) {
   const list = installed.map((s) => `- ${s.display}: ${s.description}`).join("\n");
   return [
     "Eres un selector de skills para un agente de coding.",
     `Persona: ${personaName}.`,
-    "Descripción del rol:",
-    body || "(sin descripción)",
+    "Rol (una línea):",
+    role || "(sin descripción)",
     "",
     "Skills INSTALADAS (solo podés elegir de esta lista, no inventes):",
     list,
@@ -245,12 +256,12 @@ async function confirmGlobal(suggested, { ask = prompt.ask, save = config.save, 
 
 async function suggestGlobal() {
   const project = currentProject();
-  const installed = skills.listInstalled(project && project.projectDir);
+  const current = config.load().globalSkills || [];
+  const installed = proposable(skills.listInstalled(project && project.projectDir), current);
   if (!installed.length) {
-    console.error("No encontré skills instaladas en los roots conocidos.");
+    console.error("No encontré skills proponibles (fuera del pack y de las globales actuales).");
     process.exit(1);
   }
-  const current = config.load().globalSkills || [];
   const res = tryVendor(project, buildGlobalPrompt({ installed, current }));
   let suggested = res.ok ? parseSuggestions(res.output) : null;
   if (!suggested) {
@@ -269,16 +280,19 @@ function suggestPersona(personaName) {
     process.exit(1);
   }
 
-  const installed = skills.listInstalled(project.projectDir);
+  const globals = skills.effectiveGlobals(project);
+  const installed = proposable(skills.listInstalled(project.projectDir), globals);
   if (!installed.length) {
-    console.error("No encontré skills instaladas en los roots conocidos.");
+    console.error("No encontré skills proponibles (fuera del pack y de las globales actuales).");
     process.exit(1);
   }
 
   const p = prompts.loadPersona(personaName);
   const current = (p && p.skills) || [];
+  // body = solo para el matcher local; role = lo único que se manda al vendor.
   const body = (p && p.body) || (project.personas[personaName] || {}).rol || "";
-  const res = tryVendor(project, buildSuggestPrompt({ personaName, body, current, installed }));
+  const role = (project.personas[personaName] || {}).rol || personaName;
+  const res = tryVendor(project, buildSuggestPrompt({ personaName, role, current, installed }));
   let suggested = res.ok ? parseSuggestions(res.output) : null;
   if (!suggested) {
     console.error(res.ok ? "El vendor no devolvió JSON parseable. Uso el buscador local." : `No pude consultar el vendor (${res.error}). Uso el buscador local.`);
@@ -325,4 +339,5 @@ module.exports = {
   applyProject,
   validateNames,
   confirmGlobal,
+  proposable,
 };

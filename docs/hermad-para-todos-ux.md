@@ -235,9 +235,11 @@ Solo si encontró skills y hay vendor. **Default = No.**
 ```
 ▲  Antes de seguir: ¿enviar descripciones a un modelo?
 │
-│  Para recomendarte mejor puedo pedirle a {vendor} ({modelo}) que lea tus skills.
+│  Para recomendarte mejor puedo pedirle a {vendor} ({modelo}) que lea el nombre y
+│  la descripción de tus skills y el nombre y el rol en una línea de cada persona.
 │
-│  Se enviaría:    el nombre y la descripción corta de cada skill ({n} skills)
+│  Se enviaría:    el nombre y la descripción corta de cada skill, más el nombre y
+│                  el rol en una línea de cada persona ({n} skills)
 │  NO se enviaría: el contenido de las skills, tus archivos ni tus proyectos
 │  Destino:        {vendor}, con el modelo {modelo} que elegiste en el paso anterior
 │
@@ -252,8 +254,8 @@ Solo si encontró skills y hay vendor. **Default = No.**
 | clave | es | en |
 |---|---|---|
 | `skills.consent.title` | `Antes de seguir: ¿enviar descripciones a un modelo?` | `Before we go on: send descriptions to a model?` |
-| `skills.consent.body` | `Para recomendarte mejor puedo pedirle a {vendor} ({model}) que lea tus skills.` | `To recommend better I can ask {vendor} ({model}) to read your skills.` |
-| `skills.consent.sent` | `Se enviaría: el nombre y la descripción corta de cada skill ({n} skills)` | `Would be sent: each skill's name and short description ({n} skills)` |
+| `skills.consent.body` | `Para recomendarte mejor puedo pedirle a {vendor} ({model}) que lea el nombre y la descripción de tus skills y el nombre y el rol en una línea de cada persona.` | `To recommend better I can ask {vendor} ({model}) to read your skill names and descriptions and each persona's name and one-line role.` |
+| `skills.consent.sent` | `Se enviaría: el nombre y la descripción corta de cada skill, más el nombre y el rol en una línea de cada persona ({n} skills)` | `Would be sent: each skill's name and short description, plus each persona's name and one-line role ({n} skills)` |
 | `skills.consent.notsent` | `NO se enviaría: el contenido de las skills, tus archivos ni tus proyectos` | `NOT sent: the skills' contents, your files or your projects` |
 | `skills.consent.dest` | `Destino: {vendor}, con el modelo {model} que elegiste en el paso anterior` | `Destination: {vendor}, using the {model} model you chose in the previous step` |
 | `skills.consent.no` | `Si dices que no, uso un buscador local: la recomendación es menos fina, pero no sale nada de tu equipo.` | `If you say no, I use a local matcher: suggestions are less precise, but nothing leaves your machine.` |

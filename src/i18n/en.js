@@ -50,8 +50,8 @@ module.exports = {
   "skills.scanning": "Indexing installed skills…",
   "skills.none": "I found no installed skills. We'll continue without them; your team works the same.",
   "skills.consent.title": "Before we go on: send descriptions to a model?",
-  "skills.consent.body": "To recommend better I can ask {vendor} ({model}) to read your skills.",
-  "skills.consent.sent": "Would be sent: each skill's name and short description ({n} skills)",
+  "skills.consent.body": "To recommend better I can ask {vendor} ({model}) to read your skill names and descriptions and each persona's name and one-line role.",
+  "skills.consent.sent": "Would be sent: each skill's name and short description, plus each persona's name and one-line role ({n} skills)",
   "skills.consent.notsent": "NOT sent: the skills' contents, your files or your projects",
   "skills.consent.dest": "Destination: {vendor}, using the {model} model you chose in the previous step",
   "skills.consent.local":

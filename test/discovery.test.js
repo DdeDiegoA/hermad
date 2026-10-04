@@ -57,6 +57,27 @@ test("fallo del LLM cae al matcher local con warning, nunca corta (FR-2.3)", () 
   assert.match(res.warnings[0], /no auth/);
 });
 
+test("no propone como candidatas las skills que ya son globales (local y LLM)", () => {
+  const list = [
+    { id: "caveman", name: "caveman", description: "Short terse replies" },
+    { id: "graphify", name: "graphify", description: "Knowledge graph of code" },
+  ];
+  const local = discovery.suggest({ list, personas: ["dev"], personaBodies: { dev: "short replies graph" }, globals: ["caveman"] });
+  assert.deepEqual(local.global.map((g) => g.name), ["graphify"], "caveman ya es global");
+  assert.ok(!local.byPersona.dev.some((s) => s.name === "caveman"), "matcher local también la excluye");
+
+  const llm = discovery.suggest({
+    list,
+    personas: ["dev"],
+    personaBodies: { dev: "x" },
+    globals: ["caveman"],
+    vendor: "claude",
+    consent: true,
+    callVendor: () => JSON.stringify({ global: ["caveman", "graphify"], byPersona: { dev: ["caveman"] }, reason: "r" }),
+  });
+  assert.deepEqual(llm.global.map((g) => g.name), ["graphify"], "aunque el LLM la recomiende, no se propone");
+});
+
 test("cero skills instaladas: resultado vacío sin warnings ni llamadas (FR-2.5)", () => {
   let called = false;
   const res = discovery.suggest({

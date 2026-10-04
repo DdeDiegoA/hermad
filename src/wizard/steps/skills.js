@@ -3,8 +3,6 @@
 // persona. El LLM solo con consentimiento (default No); si no, matcher local
 // (privacidad por defecto, NFR-5). Es saltable: cero skills propias es válido y
 // no genera warnings (FR-2.5). No persiste nada: el apply lo hace setup.
-const fs = require("fs");
-const path = require("path");
 const discovery = require("../../lib/discovery");
 const pack = require("../../lib/pack");
 const prompts = require("../../lib/prompts");
@@ -15,15 +13,7 @@ const { checkCancel } = require("../../lib/prompt");
 // El pack base (herdr-bmad) queda enlazado en el filesystem del vendor: NO es una
 // skill del usuario y no debe entrar en las propuestas (si no, un re-run del
 // wizard la "descubre" y cambia la config — rompe la idempotencia A9).
-function isPackSkill(dir, packDir) {
-  try {
-    const real = fs.realpathSync(dir);
-    const realPack = fs.realpathSync(packDir);
-    return real === realPack || real.startsWith(realPack + path.sep);
-  } catch {
-    return false;
-  }
-}
+// pack.isPackSkill centraliza esa regla (misma que usa `hermad skills suggest`).
 
 function modelLabel(ctx, vendor) {
   const id = modelIdFrom((ctx.personas.orquestador || {}).modelFlag || "");
@@ -50,8 +40,7 @@ async function collect(ctx, ui) {
     return;
   }
 
-  const packDir = pack.packDirFor(ctx.home);
-  const list = ctx.listInstalled(ctx.projectDir).filter((s) => !isPackSkill(s.dir, packDir));
+  const list = ctx.listInstalled(ctx.projectDir).filter((s) => !pack.isPackSkill(s.dir, ctx.home));
   if (!list.length) {
     await ui.note(tr("skills.none"));
     // Sin skills propias no se pisa lo ya guardado (NFR-8).
@@ -60,8 +49,14 @@ async function collect(ctx, ui) {
   }
 
   const personas = Object.keys(ctx.personas);
+  // Cuerpo completo para el matcher LOCAL (no sale de la máquina) y solo el rol
+  // en una línea para el LLM (nunca el cuerpo — decisión de seguridad).
   const personaBodies = {};
-  for (const p of personas) personaBodies[p] = (prompts.loadPersona(p) || {}).body || (ctx.personas[p] || {}).rol || "";
+  const personaRoles = {};
+  for (const p of personas) {
+    personaBodies[p] = (prompts.loadPersona(p) || {}).body || (ctx.personas[p] || {}).rol || "";
+    personaRoles[p] = (ctx.personas[p] || {}).rol || "";
+  }
 
   const vendor = (ctx.personas.orquestador || {}).kind || ctx.vendors[0];
   let consent = Boolean(ctx.flags.llmSuggest);
@@ -76,6 +71,7 @@ async function collect(ctx, ui) {
     list,
     personas,
     personaBodies,
+    personaRoles,
     vendor,
     model: modelIdFrom((ctx.personas.orquestador || {}).modelFlag || ""),
     consent: canLLM,
@@ -102,7 +98,9 @@ async function collect(ctx, ui) {
     if (picked.length) personaSkills[p] = picked;
   }
 
-  ctx.skills = { globalSkills: globalSelected, personaSkills, source: res.source };
+  // discovery ya no propone las globales vigentes: el wizard las conserva para
+  // que un re-run no las borre (A9).
+  ctx.skills = { globalSkills: [...new Set([...keep.globalSkills, ...globalSelected])], personaSkills, source: res.source };
 }
 
 module.exports = { collect, consentNote, modelLabel };
