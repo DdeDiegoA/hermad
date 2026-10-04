@@ -61,6 +61,11 @@
   - Fixes en vivo: `herdr.agentRead` parseaba JSON sobre texto (rutas nunca funcionaron); marcadores ahora solo por línea exacta + dedupe por identidad `evento|story|n` (re-emitir = `n` nuevo); `project.hydrate` descartaba `routes`/`autoClose`/`skills`; `config.save` mergea con disco (no borra `globalSkills`).
   - Pendientes post-épica: auto-close cierra a un agente lanzado con `spawn` (no `plan-devs`) apenas emite DONE, aunque el reviewer aún no aprobó — la guarda de story solo mira `state.stories` (pasó con CORE-ORQ); `normalizePersona` corta en el primer `-`; aviso de ruta escueto (agregar branch/commit); `hermad send` acepta destinos con espacios; aviso `gerencia` repetido; agentes lanzados antes de S3b no están en `state.agents` (no se auto-cierran); Diego debe correr `hermad skills suggest --global`; aceptación en vivo de `open-orchestrator` con colisión de nombre.
 
+- 2026-10-04 — Configuración de skills (Diego):
+  - `globalSkills` (`~/.hermad/config.json`): `caveman:caveman`, `ponytail:ponytail`, `herdr-bmad`, `andrej-karpathy-skills:karpathy-guidelines`, `graphify`, `bmad-help`. Se cargan en todos los agentes; las no nativas del vendor (p. ej. plugins de claude en opencode/hermes) van por ruta SKILL.md — aceptado el costo de contexto.
+  - Frontmatter de personas: sin `herdr-bmad`, `rag-pipeline` ni `graphify` (story SKILLS-CFG en curso, dev).
+  - Skills por tarea: el orquestador corre `hermad skills match` antes de CADA delegación y pasa todas las relevantes con `--skills` (sin tope), y las reporta.
+
 ## Reglas del equipo
 
 - **Regla inviolable: el orquestador SOLO delega.** Nunca edita código/docs/tests/configs, nunca hace hotfixes (ni urgentes), nunca corre tests ni investiga código: spawnea/manda al peer correcto. Excepciones: comandos hermad/herdr, merges aprobados por el reviewer, AGENTS.md y journal. (Diego, 2026-10-03; horneada en `templates/prompts/orquestador.md`, commands y briefing — CORE-ORQ mergeada, test `test/orquestador-rule.test.js`.)
