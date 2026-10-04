@@ -74,8 +74,9 @@
   - Decisiones de Diego tras el research: funciona SIN BMad (wizard ofrece instalarlo); distribución por npm desde el repo GitHub, sin publicar en el registro (repo debe hacerse público — acción de Diego); wizard con `@clack/prompts` (se enmienda la regla de cero deps; Node ≥ 20.12); idioma elegible es/en en setup; vendors detectados, con uno solo todas las personas van ahí, el MODELO siempre lo elige el usuario; codex/gemini experimentales; bypass de permisos solo con aceptación explícita en setup (si no, modo con prompts).
   - pm DONE → `docs/hermad-para-todos-{brief,prd}.md` (FR-1.1..8.5, NFR-1..8, A1-A9; F5 bypass = parte con gate de seguridad).
   - architect DONE → `docs/hermad-para-todos-design.md`: commands-table (HELP/dispatch/completion), pack.js, discovery.js, wizard/ui.js, install-method.js, bmad.js, i18n. 8 stories en 3 olas: CLI-TABLE · CONFIG-PERMS⚠️ · DEBTS → COMPLETION · PROMPTS · WIZARD-CORE → SETUP · UPDATE-BMAD.
-  - GATE SEGURIDAD pendiente (Diego): permissions.mode default prompt, `--yes` nunca implica bypass (`--accept-bypass`), config legacy sin clave → bypass + aviso.
-  - ux (sin skills de tarea: ninguna candidata relevante) → `docs/hermad-para-todos-ux.md` en curso. Siguiente: pm (stories) → gate.
+  - GATE SEGURIDAD APROBADO por Diego (2026-10-04): default `prompt`; D1 aceptación = select + confirm (default No en ambos); D2+D3 el texto de riesgo menciona inyección de instrucciones y el costo (agentes blocked hasta atender el panel); D4 legacy sin `permissions` → bypass + aviso; D5 override por proyecto solo con `settings permissions --project`; D6 `--yes` nunca implica bypass (`--accept-bypass`). Las stories GATE-SEGURIDAD igual pasan por revisión de Diego antes del merge.
+  - ux DONE → `docs/hermad-para-todos-ux.md` (9 pasos es/en, update, errores, tabla --yes).
+  - pm (skills de tarea: bmad-spec, bmad-artifact-authoring) → SPEC.md + stories.yaml en curso. Siguiente: gate de build.
 
 ## Reglas del equipo
 
