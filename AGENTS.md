@@ -70,7 +70,9 @@
 
 - 2026-10-04 — Épica "hermad para todos" (track full) — fase analyst en curso:
   - Decisiones de Diego: (1) skills = pack base de hermad + descubrir las del usuario en el setup (suggest + confirmación), nada atado a la máquina de Diego; (2) completion de comandos y flags para zsh, bash, fish y PowerShell; (3) TUI = wizard simple (prompts guiados: instalar, setup, update), deps mínimas.
-  - analyst (skills de tarea: bmad-deep-recon, project-bootstrap, agent-tooling-bootstrap) → `docs/hermad-para-todos-research.md`. Siguiente: pm (brief/PRD) → architect → ux (wizard) → pm (stories).
+  - analyst DONE → `docs/hermad-para-todos-research.md`.
+  - Decisiones de Diego tras el research: funciona SIN BMad (wizard ofrece instalarlo); distribución por npm desde el repo GitHub, sin publicar en el registro (repo debe hacerse público — acción de Diego); wizard con `@clack/prompts` (se enmienda la regla de cero deps; Node ≥ 20.12); idioma elegible es/en en setup; vendors detectados, con uno solo todas las personas van ahí, el MODELO siempre lo elige el usuario; codex/gemini experimentales; bypass de permisos solo con aceptación explícita en setup (si no, modo con prompts).
+  - pm (skill de tarea: bmad-product-brief) → brief + PRD en curso. Siguiente: architect → ux (wizard) → pm (stories) → gate.
 
 ## Reglas del equipo
 
