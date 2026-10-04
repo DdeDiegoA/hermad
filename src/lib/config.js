@@ -44,7 +44,7 @@ function modeOf(perms) {
 }
 
 // Config nueva (sin archivo) → prompt. Config legacy (sin schemaVersion) → bypass
-// (status quo de Diego, sin regresión) hasta que `settings permissions` lo fije.
+// (status quo actual, sin regresión) hasta que `settings permissions` lo fije.
 // Preserva personas y claves desconocidas; el save siguiente escribe schemaVersion 2.
 function load(file = CONFIG_PATH) {
   if (!fs.existsSync(file)) return defaultConfig();
