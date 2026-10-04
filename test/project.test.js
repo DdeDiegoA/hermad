@@ -110,3 +110,14 @@ test("hydrate conserva claves opcionales (routes, autoClose)", () => {
   assert.deepStrictEqual(p.routes, routes);
   assert.strictEqual(p.autoClose, false);
 });
+
+test("hydrate conserva permissions del proyecto (override sobre la global)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-proj-perm-"));
+  fs.mkdirSync(path.join(dir, ".hermad"));
+  const permissions = { mode: "prompt", acceptedAt: null };
+  fs.writeFileSync(path.join(dir, ".hermad", "project.json"), JSON.stringify({ name: "x", permissions }));
+  const p = resolveProject(dir, { strict: true });
+  assert.deepStrictEqual(p.permissions, permissions, "el hydrate no descarta permissions");
+  const onDisk = JSON.parse(fs.readFileSync(path.join(dir, ".hermad", "project.json"), "utf8"));
+  assert.deepStrictEqual(onDisk.permissions, permissions, "sobrevive a la reescritura del hydrate");
+});

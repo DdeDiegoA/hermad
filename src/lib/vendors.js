@@ -2,13 +2,18 @@
 const { execFileSync } = require("child_process");
 
 // kind → binario que `herdr agent start --kind <kind> -- <vendor_args>` espera en PATH.
+// `experimental` = no probado en vivo: puede usarse si el usuario lo elige, pero
+// NUNCA es default ni entra en la propuesta de reparto (FR-4.4).
 const VENDOR_BINARIES = {
-  claude: "claude",
-  opencode: "opencode",
-  codex: "codex",
-  gemini: "gemini",
-  hermes: "hermes",
+  claude: { bin: "claude" },
+  opencode: { bin: "opencode" },
+  codex: { bin: "codex", experimental: true },
+  gemini: { bin: "gemini", experimental: true },
+  hermes: { bin: "hermes" },
 };
+
+// Orden de preferencia para el default (nunca experimentales).
+const VENDOR_ORDER = ["claude", "opencode", "hermes"];
 
 // ponytail: no todos los vendors exponen "listar modelos" por CLI sin auth de red.
 // Catálogo estático de respaldo — puede quedar desactualizado, por eso `hermad setup`
@@ -44,7 +49,18 @@ function which(bin) {
 }
 
 function detectInstalledVendors() {
-  return Object.keys(VENDOR_BINARIES).filter((kind) => which(VENDOR_BINARIES[kind]));
+  return Object.keys(VENDOR_BINARIES).filter((kind) => which(VENDOR_BINARIES[kind].bin));
+}
+
+function isExperimental(kind) {
+  return Boolean(VENDOR_BINARIES[kind] && VENDOR_BINARIES[kind].experimental);
+}
+
+// Default/propuesta de vendor: el primero instalado y NO experimental, en orden de
+// preferencia; null si solo hay experimentales (el usuario decide a mano).
+function pickDefaultVendor(installed = detectInstalledVendors()) {
+  const stable = installed.filter((k) => VENDOR_BINARIES[k] && !VENDOR_BINARIES[k].experimental);
+  return VENDOR_ORDER.find((k) => stable.includes(k)) || stable[0] || null;
 }
 
 // Modelos dinámicos: hoy solo opencode expone `opencode models [provider]` sin requerir
@@ -100,9 +116,12 @@ const BYPASS_ARGS = {
 };
 
 function startPlan(kind, personaName, persona, artifacts) {
+  // Bypass SOLO si render lo resolvió explícitamente a "bypass". Cualquier otro
+  // valor (prompt, ausente o desconocido) falla CERRADO: nunca BYPASS_ARGS.
+  const bypass = Boolean(artifacts && artifacts.permissions === "bypass");
   const modelFlags = [
     ...(Array.isArray(persona.modelFlag) ? persona.modelFlag : (persona.modelFlag || "").split(" ").filter(Boolean)),
-    ...(BYPASS_ARGS[kind] || []),
+    ...(bypass ? BYPASS_ARGS[kind] || [] : []),
   ];
   const skillNames = artifacts.skillsFound || [];
 
@@ -140,4 +159,4 @@ function startPlan(kind, personaName, persona, artifacts) {
   }
 }
 
-module.exports = { VENDOR_BINARIES, BYPASS_ARGS, detectInstalledVendors, modelsFor, modelFlagFor, which, startPlan };
+module.exports = { VENDOR_BINARIES, VENDOR_ORDER, BYPASS_ARGS, detectInstalledVendors, isExperimental, pickDefaultVendor, modelsFor, modelFlagFor, which, startPlan };
