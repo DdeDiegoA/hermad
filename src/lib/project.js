@@ -52,7 +52,10 @@ function hydrate(project, dir) {
   const projectPersonas = project.personas || {};
   const personas = { ...base, ...projectPersonas };
   const departamentos = project.departamentos || personasEnv.DEFAULT_DEPARTAMENTOS;
+  // `...project` conserva las claves opcionales (routes, autoClose, compactPct,
+  // skills…): sin esto el daemon nunca veía `routes` y caía siempre en los defaults.
   const full = {
+    ...project,
     name: project.name || path.basename(dir),
     label: project.label || project.name || path.basename(dir),
     projectDir: dir,

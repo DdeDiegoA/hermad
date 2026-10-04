@@ -100,3 +100,13 @@ test("devuelve null sin project.json ni activo", () => {
   process.env.HOME = savedHome;
   process.env.USERPROFILE = savedProfile;
 });
+
+test("hydrate conserva claves opcionales (routes, autoClose)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-proj-"));
+  fs.mkdirSync(path.join(dir, ".hermad"));
+  const routes = [{ on: "DONE", from: "dev", to: "reviewer" }];
+  fs.writeFileSync(path.join(dir, ".hermad", "project.json"), JSON.stringify({ name: "x", routes, autoClose: false }));
+  const p = resolveProject(dir, { strict: true });
+  assert.deepStrictEqual(p.routes, routes);
+  assert.strictEqual(p.autoClose, false);
+});
