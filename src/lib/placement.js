@@ -1,25 +1,57 @@
 "use strict";
 const personasEnv = require("./personas-env");
+const agents = require("./agents");
 
 // `gerencia` es el tab del orquestador (ver orchestrator.bootstrap), no un tab de
 // workers: una entrada con esa etiqueta en `departamentos` se ignora.
 const MANAGEMENT_TAB = "gerencia";
 const RESERVED_TABS = new Set([MANAGEMENT_TAB]);
 
-// El departamento habla de la persona BASE, no del agente: dev-3 → dev,
-// reviewer-opencode → reviewer.
-function normalizePersona(persona) {
-  return String(persona || "").split("-")[0];
+// Candidatos para el match por prefijo más largo: las personas del proyecto (el
+// del design §8) + las que nombran los departamentos (proyecto y defaults), para
+// que un proyecto sin `personas` (o un test) siga resolviendo dev-3 → dev.
+function personaCandidates(project) {
+  const out = new Set(Object.keys((project && project.personas) || {}));
+  for (const [, names] of (project && project.departamentos) || []) {
+    if (Array.isArray(names)) for (const n of names) out.add(n);
+  }
+  for (const [, names] of personasEnv.DEFAULT_DEPARTAMENTOS) for (const n of names) out.add(n);
+  return [...out];
+}
+
+// El departamento habla de la persona BASE, no del agente. Orden (design §8):
+// (1) el mapa lógico→vivo ya registrado (lo graba agents.start); (2) el prefijo
+// `<slug(proyecto)>-` (nombre colisionado: hermad-architect → architect);
+// (3) el prefijo más largo contra las personas conocidas (dev-3 → dev,
+// reviewer-opencode → reviewer); (4) el nombre tal cual — NO corta en el primer
+// guion (code-reviewer sin mapa queda code-reviewer).
+function basePersona(name, { project, state } = {}) {
+  const raw = String(name || "");
+  if (!raw) return raw;
+  const mapped = state && state.agents && state.agents[raw] && state.agents[raw].persona;
+  if (mapped) return mapped;
+
+  let candidate = raw;
+  const prefix = `${agents.slug(project && project.name, project && project.projectDir)}-`;
+  if (candidate.startsWith(prefix) && candidate.length > prefix.length) candidate = candidate.slice(prefix.length);
+
+  let best = null;
+  for (const p of personaCandidates(project)) {
+    if (candidate === p || candidate.startsWith(`${p}-`)) {
+      if (!best || p.length > best.length) best = p;
+    }
+  }
+  return best || candidate;
 }
 
 // Tab de departamento al que pertenece una persona. `project.departamentos` =
 // [[label, [personas]], ...], mismo formato que usa orchestrator.js. Orden de
 // resolución: proyecto → DEFAULT_DEPARTAMENTOS (personas-env) → defaultDepartment
 // → primer departamento no reservado. Nunca null si hay departamentos; el único
-// caso null es "no hay de dónde sacar un tab". io: { log }.
+// caso null es "no hay de dónde sacar un tab". io: { log, state }.
 function departmentFor(project, persona, io = {}) {
-  const { log = () => {} } = io;
-  const p = normalizePersona(persona);
+  const { log = () => {}, state } = io;
+  const p = basePersona(persona, { project, state });
   const deps = project.departamentos || [];
 
   if (deps.some(([label]) => RESERVED_TABS.has(label))) {
@@ -28,7 +60,7 @@ function departmentFor(project, persona, io = {}) {
 
   for (const [label, names] of deps) {
     if (RESERVED_TABS.has(label)) continue;
-    if (Array.isArray(names) && names.map(normalizePersona).includes(p)) return label;
+    if (Array.isArray(names) && names.map((n) => basePersona(n, { project, state })).includes(p)) return label;
   }
   for (const [label, names] of personasEnv.DEFAULT_DEPARTAMENTOS) {
     if (Array.isArray(names) && names.includes(p)) return label;
@@ -52,9 +84,9 @@ function gridPlacement(tabPanes) {
 // (paneForAgent) cierra el pane temporal. "O aterriza en su tab, o no arranca."
 // io inyectable para test: { workspaceId, tabList, paneList, paneMove, log }.
 function moveToDepartment(project, persona, paneId, io = {}) {
-  const { workspaceId, tabList, paneList, paneMove, log = () => {} } = io;
+  const { workspaceId, tabList, paneList, paneMove, state, log = () => {} } = io;
   if (!workspaceId || !tabList || !paneMove) return paneId;
-  const label = departmentFor(project, persona, { log });
+  const label = departmentFor(project, persona, { log, state });
   if (!label) return null;
 
   let tab;
@@ -99,10 +131,10 @@ function moveToDepartment(project, persona, paneId, io = {}) {
 // io inyectable: { workspaceId, cwd, daemonPaneId, tabList, tabCreate, paneList,
 // paneSplit, paneMove, paneClose, log }.
 function paneForAgent(project, persona, io = {}) {
-  const { workspaceId, cwd, daemonPaneId, tabList, tabCreate, paneList, paneSplit, paneMove, log = () => {} } = io;
+  const { workspaceId, cwd, daemonPaneId, tabList, tabCreate, paneList, paneSplit, paneMove, state, log = () => {} } = io;
   if (!workspaceId || !tabList) return null;
 
-  const label = departmentFor(project, persona, { log });
+  const label = departmentFor(project, persona, { log, state });
   if (!label) {
     log(`[!] ${persona} no está en ningún departamento y no hay departamentos — agregalos para ubicarlo en un tab`);
     return null;
@@ -130,7 +162,7 @@ function paneForAgent(project, persona, io = {}) {
 
   if (!daemonPaneId || !paneSplit) return null;
   const paneId = paneSplit(daemonPaneId, "down", { cwd }).paneId;
-  const moved = moveToDepartment(project, persona, paneId, { workspaceId, tabList, paneList, paneMove, log });
+  const moved = moveToDepartment(project, persona, paneId, { workspaceId, tabList, paneList, paneMove, state, log });
   if (moved) return moved;
 
   // El move falló: cerramos el temporal para no dejarlo contaminando el tab
@@ -146,4 +178,4 @@ function paneForAgent(project, persona, io = {}) {
   return null;
 }
 
-module.exports = { departmentFor, normalizePersona, gridPlacement, moveToDepartment, paneForAgent, MANAGEMENT_TAB };
+module.exports = { departmentFor, basePersona, gridPlacement, moveToDepartment, paneForAgent, MANAGEMENT_TAB };

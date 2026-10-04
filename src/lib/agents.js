@@ -110,6 +110,10 @@ function start({ project, logical, persona, kind, paneId, args, promptText, skil
   // El mapa lógico→vivo es la única fuente de la traducción; lo escriben los
   // arranques (bootstrap/spawn/plan-devs). updateState (S1) = lock + lectura fresca.
   io.updateState(projectDir, (st) => {
+    // El alta limpia la baja: si el daemon había cerrado este lógico, relanzarlo
+    // no debe quedar marcado como cerrado (si no, no le entrega el buzón y repite
+    // el aviso de respawn). Mismo updateState del alta (FR-8.2).
+    if (st.closed) delete st.closed[logical];
     st.agents = st.agents || {};
     st.agents[logical] = {
       live,

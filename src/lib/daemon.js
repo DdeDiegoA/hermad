@@ -2,6 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { execFileSync } = require("child_process");
 const herdr = require("./herdr");
 const memory = require("./memory");
 const agents = require("./agents");
@@ -203,6 +204,39 @@ function routesFor(project) {
   return project.routes && project.routes.length ? project.routes : DEFAULT_ROUTES;
 }
 
+// Commit corto del worktree de una story (best-effort; sin git/worktree → null).
+function gitHead(dir) {
+  try {
+    return execFileSync("git", ["-C", dir, "rev-parse", "--short", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+// Sufijo `(branch X commit Y)` para los avisos al orquestador cuando el agente es
+// un dev con story (FR-8.4): el humano ubica el trabajo sin preguntar. io.gitHead
+// inyectable en test; sin commit igual sirve el branch.
+function devLocation(projectDir, storyId, story, io) {
+  if (!storyId) return "";
+  const branch = (story && story.branch) || `hermad/${storyId}`;
+  let head = null;
+  try {
+    const wtDir = path.join(projectDir, ".hermad", "worktrees", storyId);
+    head = io && io.gitHead ? io.gitHead(wtDir) : gitHead(wtDir);
+  } catch {
+    head = null;
+  }
+  return ` (branch ${branch}${head ? ` commit ${head}` : ""})`;
+}
+
+// Story de la que `logical` es dueño, si la hay (para el aviso de ruta).
+function storyOf(state, logical) {
+  return Object.entries(state.stories || {}).find(([, s]) => s && s.dev === logical) || null;
+}
+
 // Con devs paralelos la ruta apunta a `dev`, pero el dueño de la story es dev-N.
 function resolveTarget(to, story, state) {
   const entry = story && state.stories && state.stories[story];
@@ -222,7 +256,8 @@ function applyRoute(project, { fromPersona, fromAgent, event, story, extra }, st
     state.rebounds[story] = (state.rebounds[story] || 0) + 1;
     if (state.rebounds[story] >= MAX_REBOUNDS) {
       // sin `HERMAD:` a propósito: el mensaje no debe re-parsearse como marcador.
-      io.send({ from: "daemon", to: "orquestador", text: `escalo: story=${story} alcanzó ${state.rebounds[story]} rebotes — no reboto más al dev` });
+      const loc = devLocation(project.projectDir, story, state.stories && state.stories[story], io);
+      io.send({ from: "daemon", to: "orquestador", text: `escalo: story=${story}${loc} alcanzó ${state.rebounds[story]} rebotes — no reboto más al dev` });
       return true;
     }
   }
@@ -444,10 +479,12 @@ function runOnce(project, io) {
     const n = pendingFiles(project.projectDir, logical).length;
     if (!n) continue;
     c.notifiedAt = Date.now();
+    const own = storyOf(state, logical);
+    const loc = own ? devLocation(project.projectDir, own[0], own[1], io) : "";
     io.send({
       from: "daemon",
       to: "orquestador",
-      text: `${logical} está cerrado y tiene ${n} mensaje(s) — hermad spawn ${c.persona || logical} --name ${logical}`,
+      text: `${logical} está cerrado${loc} y tiene ${n} mensaje(s) — hermad spawn ${c.persona || logical} --name ${logical}`,
     });
     acted++;
   }
@@ -496,6 +533,14 @@ function runOnce(project, io) {
       delete fresh.agents[logical];
       delete fresh.agentMiss[logical];
     }
+    // closed y agents son mutuamente excluyentes: un lógico registrado como vivo
+    // NO está cerrado. Si el CLI lo relanzó durante el tick (agents.start borra
+    // closed[logical] en su propio updateState), el write-back con el snapshot
+    // viejo no debe resucitar la baja — si no, el daemon no le entrega el buzón
+    // ni respeta `closed` (FR-8.2).
+    for (const logical of Object.keys(fresh.closed)) {
+      if (fresh.agents[logical]) delete fresh.closed[logical];
+    }
   });
   return acted;
 }
@@ -506,6 +551,7 @@ function defaultIo() {
     agentRead: (name, opts) => herdr.agentRead(name, opts),
     agentPrompt: (name, text) => herdr.agentPrompt(name, text),
     paneClose: (paneId) => herdr.paneClose(paneId),
+    gitHead: (dir) => gitHead(dir),
     send: ({ from, to, text }) => send(process.cwd(), { from, to, text }),
     log: (msg) => console.log(msg),
   };

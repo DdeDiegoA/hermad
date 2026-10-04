@@ -130,6 +130,7 @@ function run(args) {
         workspaceId: state.workspaceId,
         daemonPaneId: state.daemonPaneId,
         cwd: wtDir,
+        state,
         tabList: herdr.tabList,
         tabCreate: herdr.tabCreate,
         paneList: herdr.paneList,

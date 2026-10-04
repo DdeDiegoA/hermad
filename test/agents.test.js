@@ -143,3 +143,18 @@ test("slug normaliza a [a-z0-9-] y cae al basename sin nombre", () => {
   assert.equal(agents.slug("Hermad"), "hermad");
   assert.equal(agents.slug(null, "/tmp/foo-bar"), "foo-bar");
 });
+
+test("start limpia state.closed del lógico en el mismo updateState del alta", () => {
+  const project = tmpProject();
+  setWorkspace(project.projectDir, "ws-1");
+  daemon.updateState(project.projectDir, (st) => {
+    st.closed = { dev: { at: Date.now(), live: "dev", paneId: "pane-0", persona: "dev" } };
+  });
+  const { io } = stubIo();
+
+  const live = agents.start(base(project), io);
+  assert.equal(live, "dev");
+  const st = daemon.loadState(project.projectDir);
+  assert.equal(st.closed.dev, undefined, "el alta limpia la baja (el daemon le vuelve a entregar el buzón)");
+  assert.ok(st.agents.dev, "queda registrado en agents");
+});

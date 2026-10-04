@@ -593,3 +593,96 @@ test("auto-close: un mensaje al buzón de un lógico cerrado avisa una sola vez"
   assert.equal(warns.length, 1, "avisa una sola vez");
   assert.ok(/dev-1/.test(warns[0].text) && /--name dev-1/.test(warns[0].text));
 });
+
+// --- HPT-DEBTS: deudas de auto-close, ownership y aviso ---
+
+test("A7: un dev lanzado con spawn --story no se cierra antes del DONE del reviewer", () => {
+  const { p, io, closedPanes } = closeSetup({ status: "done", story: { id: "HPT-X", status: "assigned" } });
+  daemon.updateState(p.projectDir, (s) => {
+    s.stories["HPT-X"].source = "spawn";
+    s.stories["HPT-X"].branch = "hermad/HPT-X";
+  });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0, "story assigned (vino de spawn) = no cierra ni con DONE");
+  daemon.updateState(p.projectDir, (s) => {
+    s.stories["HPT-X"].status = "done"; // el DONE del reviewer la marca done
+  });
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 1, "con el DONE del reviewer sí cierra");
+});
+
+test("el escalado de una story incluye branch y commit del dev", () => {
+  const p = project();
+  const sent = [];
+  const io = { send: (m) => sent.push(m), log: () => {}, gitHead: () => "abc1234" };
+  const state = daemon.loadState(p.projectDir);
+  state.stories.S1 = { dev: "dev-2", branch: "hermad/S1", status: "assigned" };
+  const mk = { event: "BUG", story: "S1", extra: {} };
+  daemon.applyRoute(p, { fromPersona: "reviewer", ...mk }, state, io);
+  daemon.applyRoute(p, { fromPersona: "reviewer", ...mk }, state, io);
+  daemon.applyRoute(p, { fromPersona: "reviewer", ...mk }, state, io);
+  const esc = sent.find((m) => m.to === "orquestador");
+  assert.ok(esc, "escaló al orquestador");
+  assert.match(esc.text, /branch hermad\/S1/);
+  assert.match(esc.text, /commit abc1234/);
+});
+
+test("el aviso de un dev cerrado con story incluye branch y commit", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.closed = { "dev-1": { at: Date.now(), live: "hermad-dev-1", paneId: "pane-1", persona: "dev" } };
+    s.stories = { S1: { dev: "dev-1", branch: "hermad/S1", status: "assigned", source: "spawn" } };
+  });
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev-1", text: "dale" });
+  const { io, sent } = stubIo({ list: [], read: {} });
+  io.gitHead = () => "deadbee";
+  daemon.runOnce(p, io);
+  const warn = sent.find((m) => m.to === "orquestador" && /cerrado/.test(m.text));
+  assert.ok(warn);
+  assert.match(warn.text, /branch hermad\/S1/);
+  assert.match(warn.text, /commit deadbee/);
+});
+
+test("hermad send mantiene entero un destino con espacios y no lo parte", () => {
+  const { parseArgs } = require("../src/commands/send");
+  assert.deepEqual(parseArgs(["dev 3", "hola", "mundo"], {}), { from: "agente", skillsArg: null, to: "dev 3", text: "hola mundo" });
+  assert.deepEqual(
+    parseArgs(["--from", "orq", "dev 3", "hola", "--skills", "a,b"], {}),
+    { from: "orq", skillsArg: "a,b", to: "dev 3", text: "hola" }
+  );
+});
+
+test("el daemon no resucita closed si el CLI relanza el lógico durante el tick (carrera write-back)", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.closed = { dev: { at: Date.now(), live: "dev", paneId: "pane-0", persona: "dev" } };
+  });
+  let injected = false;
+  const io = {
+    agentList: () => {
+      if (!injected) {
+        injected = true;
+        // `hermad spawn` cae en la ventana del tick (herdr lento): da de alta el
+        // lógico y borra su closed en el mismo updateState de agents.start.
+        daemon.updateState(p.projectDir, (s) => {
+          delete s.closed.dev;
+          s.agents = { dev: { live: "dev", persona: "dev", paneId: "pane-1", workspaceId: "w1" } };
+        });
+      }
+      return [{ name: "dev", agent_status: "idle", workspace_id: "w1", pane_id: "pane-1" }];
+    },
+    agentRead: () => "",
+    agentPrompt: () => {},
+    send: () => {},
+    log: () => {},
+  };
+  daemon.runOnce(p, io);
+  assert.equal(
+    daemon.loadState(p.projectDir).closed.dev,
+    undefined,
+    "el borrado del CLI sobrevive al write-back del daemon (si no, no le entrega el buzón)"
+  );
+});

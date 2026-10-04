@@ -26,17 +26,32 @@ function taskSkillsBlockFor(names, projectDir) {
   return { block: render.taskSkillsBlock(paths), missing };
 }
 
+// Parser del comando (FR-8.5): el destino es el primer positional y se toma
+// ENTERO (un nombre con espacios viene entrecomillado = un solo argv), nunca se
+// parte; el resto de los positionals es el mensaje. `--from`/`--skills` se
+// consumen con su valor. Extraído para poder cubrir el caso con un test.
+function parseArgs(args, env = process.env) {
+  const known = ["--from", "--skills"];
+  const flags = {};
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (known.includes(args[i])) {
+      flags[args[i]] = args[i + 1];
+      i++;
+      continue;
+    }
+    rest.push(args[i]);
+  }
+  return {
+    from: flags["--from"] != null ? flags["--from"] : env.HERMAD_AGENT || env.HERDR_AGENT_NAME || "agente",
+    skillsArg: flags["--skills"] != null ? flags["--skills"] : null,
+    to: rest[0],
+    text: rest.slice(1).join(" ").trim(),
+  };
+}
+
 function run(args) {
-  const fromIdx = args.indexOf("--from");
-  const from = fromIdx >= 0 ? args[fromIdx + 1] : process.env.HERMAD_AGENT || process.env.HERDR_AGENT_NAME || "agente";
-  const skillsIdx = args.indexOf("--skills");
-  const skillsArg = skillsIdx >= 0 ? args[skillsIdx + 1] : null;
-  const skip = new Set();
-  if (fromIdx >= 0) { skip.add(fromIdx); skip.add(fromIdx + 1); }
-  if (skillsIdx >= 0) { skip.add(skillsIdx); skip.add(skillsIdx + 1); }
-  const rest = args.filter((_, i) => !skip.has(i));
-  const rawTo = rest[0];
-  const text = rest.slice(1).join(" ").trim();
+  const { from, skillsArg, to: rawTo, text } = parseArgs(args);
 
   if (!rawTo || !text) {
     console.error('Uso: hermad send <peer> "<mensaje>" [--from <agente>] [--skills a,b]');
@@ -57,4 +72,4 @@ function run(args) {
   console.log(`[+] ${from} → ${to}: encolado en ${file}`);
 }
 
-module.exports = { run, normalizeTarget, taskSkillsBlockFor };
+module.exports = { run, parseArgs, normalizeTarget, taskSkillsBlockFor };
