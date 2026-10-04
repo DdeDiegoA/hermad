@@ -38,8 +38,10 @@ function githubRepoSpec(repoRoot, fsImpl = fs) {
   }
 }
 
-function defaultExec(bin, args, opts = {}) {
-  return execFileSync(bin, args, { stdio: "inherit", ...opts });
+// En Windows `npm` y el bin `hermad` son shims .cmd: execFileSync no los lanza
+// sin shell (mismo precedente que install-method.js / vendors.js).
+function makeExec(platform = process.platform, run = execFileSync) {
+  return (bin, args, opts = {}) => run(bin, args, { shell: platform === "win32", stdio: "inherit", ...opts });
 }
 
 function defaultIO() {
@@ -52,7 +54,7 @@ async function run(args = [], deps = {}) {
   const {
     repoRoot = REPO_ROOT,
     fsImpl = fs,
-    exec = defaultExec,
+    exec: execDep,
     detect = installMethod.detect,
     currentVersion = installMethod.currentVersion,
     availableVersion = installMethod.availableVersion,
@@ -64,6 +66,7 @@ async function run(args = [], deps = {}) {
     platform = process.platform,
     config: cfg = config.load(),
   } = deps;
+  const exec = execDep || makeExec(platform);
 
   const yes = args.includes("--yes");
   const lang = cfg.language || "en";
@@ -94,38 +97,48 @@ async function run(args = [], deps = {}) {
   if (current) out(tr("update.current", { v: current }));
   if (available) out(tr("update.available", { v: available }));
 
-  const repoSpec = githubRepoSpec(repoRoot, fsImpl) || "github:<owner>/<repo>";
-  if (method === "git") out(tr("update.git.will", { path: repoRoot }));
-  else out(tr("update.npm.will", { repo: repoSpec }));
+  // Ya está al día: no reinstalo, pero reviso el pack por si faltan enlaces (ux §11).
+  const uptodate = Boolean(current && available && current === available);
+  if (uptodate) out(tr("update.uptodate", { v: current }));
 
-  const askMsg = available === null ? tr("update.warn.version") : tr("update.ask");
-  if (available === null && ui.mode === "headless") out(askMsg); // el confirm headless no imprime
-  const ok = await ui.confirm({ key: "update.ask", message: askMsg, defaultValue: true });
-  if (ui.cancelled(ok)) {
-    out(tr("update.nochange"));
-    return { method, updated: false, cancelled: true };
-  }
-  if (!ok) {
-    out(tr("update.nochange"));
-    return { method, updated: false };
+  const repoSpec = githubRepoSpec(repoRoot, fsImpl) || "github:<owner>/<repo>";
+  if (!uptodate) {
+    if (method === "git") out(tr("update.git.will", { path: repoRoot }));
+    else out(tr("update.npm.will", { repo: repoSpec }));
+
+    const askMsg = available === null ? tr("update.warn.version") : tr("update.ask");
+    if (available === null && ui.mode === "headless") out(askMsg); // el confirm headless no imprime
+    const ok = await ui.confirm({ key: "update.ask", message: askMsg, defaultValue: true });
+    if (ui.cancelled(ok)) {
+      out(tr("update.nochange"));
+      return { method, updated: false, cancelled: true };
+    }
+    if (!ok) {
+      out(tr("update.nochange"));
+      return { method, updated: false };
+    }
   }
 
   try {
     if (method === "git") {
       // Clone: ya tengo el código en disco → pull + install y re-linkeo acá mismo.
       // `--ff-only` es flag de git (no de hermad): literal armado para test/cli-parity.
-      exec("git", ["pull", `--ff-only`], { cwd: repoRoot, stdio: "inherit" });
-      exec("npm", ["install", "--omit=dev"], { cwd: repoRoot, stdio: "inherit" });
+      if (!uptodate) {
+        exec("git", ["pull", `--ff-only`], { cwd: repoRoot, stdio: "inherit" });
+        exec("npm", ["install", "--omit=dev"], { cwd: repoRoot, stdio: "inherit" });
+      }
       packInstall({ repoRoot });
       packRelink({ repoRoot, vendors: detectVendors(), platform });
     } else {
       // npm global: reinstalo desde GitHub; el proceso actual es el viejo, así que
       // el relink lo hace el binario NUEVO (`hermad setup --relink-only`).
-      if (!which("git")) {
-        out(tr("update.error.noGit"));
-        return { method, updated: false, error: "no-git" };
+      if (!uptodate) {
+        if (!which("git")) {
+          out(tr("update.error.noGit"));
+          return { method, updated: false, error: "no-git" };
+        }
+        exec("npm", ["install", "-g", repoSpec], { stdio: "inherit" });
       }
-      exec("npm", ["install", "-g", repoSpec], { stdio: "inherit" });
       exec("hermad", ["setup", RELINK_ONLY], { stdio: "inherit" });
     }
   } catch (err) {
@@ -135,7 +148,7 @@ async function run(args = [], deps = {}) {
 
   out(tr("update.relink"));
   out(tr("update.done"));
-  return { method, updated: true };
+  return { method, updated: !uptodate, uptodate };
 }
 
-module.exports = { run, githubRepoSpec, methodLabel, METHOD_LABEL, RELINK_ONLY, REPO_ROOT };
+module.exports = { run, githubRepoSpec, methodLabel, makeExec, METHOD_LABEL, RELINK_ONLY, REPO_ROOT };

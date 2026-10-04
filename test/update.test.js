@@ -183,6 +183,41 @@ test("update: cancelar imprime No changes y no ejecuta nada", async () => {
   assert.match(out(), /No changes/);
 });
 
+test("makeExec pasa shell en Windows (npm/hermad son shims .cmd) y no en Unix (FR-7.4)", () => {
+  const seen = [];
+  const spy = (bin, args, opts) => seen.push(opts);
+  update.makeExec("win32", spy)("npm", ["install", "-g", "github:x/y"]);
+  update.makeExec("linux", spy)("npm", ["install", "-g", "github:x/y"]);
+  update.makeExec("darwin", spy)("npm", ["install", "-g", "github:x/y"]);
+  assert.equal(seen[0].shell, true, "win32 necesita shell:true");
+  assert.equal(seen[1].shell, false);
+  assert.equal(seen[2].shell, false);
+  assert.equal(seen[0].stdio, "inherit");
+});
+
+test("update uptodate: no reinstala y solo re-linkea el pack (ux §11)", async () => {
+  const repo = fixtureRepo();
+  const calls = [];
+  const { io, out } = capture();
+
+  const res = await update.run([], {
+    repoRoot: repo,
+    config: EN,
+    detect: () => "npm-global",
+    currentVersion: () => "0.5.0",
+    availableVersion: async () => "0.5.0",
+    which: () => true,
+    exec: (bin, args) => calls.push([bin, args]),
+    ui: fakeUI(),
+    io,
+  });
+
+  assert.equal(res.uptodate, true);
+  assert.equal(res.updated, false);
+  assert.deepEqual(calls, [["hermad", ["setup", "--relink-only"]]], "sin npm install -g");
+  assert.match(out(), /You already have the latest version/);
+});
+
 test("create-project bmadPlan: idioma de config.language y tools por vendor detectado (FR-1.4)", () => {
   const es = createProject.bmadPlan({ config: { language: "es" }, args: [], detectedVendors: ["claude"] });
   assert.equal(es.install, false);
