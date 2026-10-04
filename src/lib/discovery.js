@@ -25,16 +25,20 @@ function rankLocal(task, { list = [], top = LOCAL_TOP, globals = [], threshold =
     .map((r) => ({ name: r.id, score: r.score, selected: true }));
 }
 
-function globalOptions(list, selected) {
+// Candidatas globales: se excluyen las que YA son globales (no se proponen de
+// nuevo; el caller decide si las conserva). `selected` = preselección del LLM.
+function globalOptions(list, selected, globals = []) {
   const picked = new Set(selected || []);
-  const slice = list.length > MANY ? list.slice(0, MAX_GLOBAL) : list;
+  const g = new Set(globals);
+  const candidates = list.filter((s) => !g.has(s.id) && !g.has(s.name));
+  const slice = list.length > MANY ? candidates.slice(0, MAX_GLOBAL) : candidates;
   return slice.map((s) => ({ name: s.id, selected: picked.has(s.id) }));
 }
 
 function localSuggest({ list = [], personas = [], personaBodies = {}, globals = [], top = LOCAL_TOP, threshold = LOCAL_THRESHOLD } = {}) {
   const byPersona = {};
   for (const p of personas) byPersona[p] = rankLocal(personaBodies[p] || p, { list, top, globals, threshold });
-  return { source: "local", global: globalOptions(list), byPersona, warnings: [] };
+  return { source: "local", global: globalOptions(list, null, globals), byPersona, warnings: [] };
 }
 
 // Catálogo que se manda al LLM: nombre + descripción, nunca el cuerpo (FR-2.4).
@@ -70,7 +74,7 @@ function parseLLM(text) {
   }
 }
 
-function llmSuggest({ list, personas, personaBodies, vendor, model, callVendor }) {
+function llmSuggest({ list, personas, personaBodies, vendor, model, callVendor, globals = [] }) {
   const raw = callVendor(vendor, model, buildLLMPrompt({ list, personas, personaBodies }));
   const parsed = parseLLM(raw);
   if (!parsed) throw new Error("respuesta no parseable");
@@ -81,7 +85,7 @@ function llmSuggest({ list, personas, personaBodies, vendor, model, callVendor }
     const rec = ((parsed.byPersona || {})[p] || []).filter((n) => ids.has(n));
     byPersona[p] = rec.map((name) => ({ name, selected: true, reason: parsed.reason }));
   }
-  return { source: "llm", global: globalOptions(list, keep(parsed.global)), byPersona, warnings: [] };
+  return { source: "llm", global: globalOptions(list, keep(parsed.global), globals), byPersona, warnings: [] };
 }
 
 // suggest: llm si hay consentimiento + vendor; si no, local. Falla del LLM →

@@ -25,6 +25,19 @@ function packDirFor(home = os.homedir()) {
   return path.join(home, ".hermad", "pack");
 }
 
+// Una skill es del pack base si su dir cae dentro de ~/.hermad/pack: no es una
+// skill del usuario y nunca debe entrar en las propuestas del wizard ni de
+// `hermad skills suggest` (si no, un re-run la "descubre" y cambia la config).
+function isPackSkill(dir, home = os.homedir()) {
+  try {
+    const real = fs.realpathSync(dir);
+    const realPack = fs.realpathSync(packDirFor(home));
+    return real === realPack || real.startsWith(realPack + path.sep);
+  } catch {
+    return false;
+  }
+}
+
 function rmPath(fsImpl, p) {
   fsImpl.rmSync(p, { recursive: true, force: true });
 }
@@ -229,4 +242,4 @@ function relink({ home = os.homedir(), vendors = [], platform = process.platform
   return { actions, changed };
 }
 
-module.exports = { REPO_ROOT, DESTINATIONS, packDirFor, install, plan, relink, desiredLinks, copyTree, sameTree };
+module.exports = { REPO_ROOT, DESTINATIONS, packDirFor, isPackSkill, install, plan, relink, desiredLinks, copyTree, sameTree };
