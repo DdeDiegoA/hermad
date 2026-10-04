@@ -4,12 +4,40 @@ const path = require("path");
 const prompts = require("./prompts");
 const memory = require("./memory");
 const skills = require("./skills");
+const config = require("./config");
 
 // Render por proyecto de los artefactos de cada persona (D2). Fuente de verdad:
 // templates/. Salida en .hermad/generated/ y .opencode/agents/ (gitignored).
 const GEN_DIR = path.join(".hermad", "generated");
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const warnedMissing = new Set();
+const warnedLegacy = { done: false };
+
+// Modo de permisos: override del proyecto (project.json → permissions, string u
+// objeto) > config global > "prompt". orchestrator/plan-devs llaman render SIN
+// `project`: ahí se lee .hermad/project.json de sourceDir (repo principal) o de
+// projectDir. Única resolución; startPlan solo mira artifacts.permissions (FR-5.3).
+function permissionsModeOf(perms) {
+  return typeof perms === "string" ? perms : perms && perms.mode;
+}
+
+function projectPermissions(dir) {
+  try {
+    return permissionsModeOf(JSON.parse(fs.readFileSync(path.join(dir, ".hermad", "project.json"), "utf8")).permissions);
+  } catch {
+    return undefined;
+  }
+}
+
+function resolvePermissions({ project, sourceDir, projectDir }) {
+  return (
+    permissionsModeOf(project && project.permissions) ??
+    projectPermissions(sourceDir) ??
+    projectPermissions(projectDir) ??
+    permissionsModeOf(config.load().permissions) ??
+    "prompt"
+  );
+}
 
 function write(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -92,6 +120,16 @@ const CLAUDE_DELEGATION_RULE = [
 // un worktree projectDir=wtDir (salida del agente) pero sourceDir=repo principal.
 function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50, extraSkills = [], project, globs }) {
   const agentKey = agentName || name;
+  // Una persona sin vendor elegido no puede arrancar: el default del fuente está
+  // vacío a propósito (FR-4.5); el usuario lo fija en `hermad setup`.
+  if (!persona || !persona.kind) {
+    throw new Error(`persona '${name}' sin vendor configurado — corré 'hermad setup' (o 'hermad settings agents')`);
+  }
+  const permissionMode = resolvePermissions({ project, sourceDir, projectDir });
+  if (permissionMode === "bypass" && config.isLegacy() && !warnedLegacy.done) {
+    warnedLegacy.done = true;
+    console.log(config.LEGACY_BYPASS_WARNING);
+  }
   const p = prompts.loadPersona(name) || { skills: [], body: persona.rol || `You are the ${name} persona.` };
   const memBlock = memory.slice(sourceDir, { persona: name });
 
@@ -187,6 +225,7 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   return {
     promptFile,
     promptBody,
+    permissions: permissionMode,
     // skillsFound = lo que el vendor carga nativo (hermes --skills, plugin claude).
     skillsFound: native.map((f) => f.name),
     skillsNative: native.map((f) => f.name),
