@@ -55,12 +55,20 @@ function safeReaddir(dir) {
   }
 }
 
+// parseFrontmatter no saca las comillas YAML: las limpiamos acá para que el
+// índice no guarde `"descripción"` con comillas.
+function unquote(s) {
+  const t = String(s || "").trim();
+  if (t.length >= 2 && ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))) return t.slice(1, -1);
+  return t;
+}
+
 function skillMeta(dir) {
   const file = path.join(dir, "SKILL.md");
   if (!fs.existsSync(file)) return null;
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, "utf8"));
-  const description = meta.description || body.split("\n")[0] || "";
-  return { name: meta.name || path.basename(dir), description };
+  const description = unquote(meta.description || body.split("\n")[0] || "");
+  return { name: unquote(meta.name || path.basename(dir)), description };
 }
 
 // Escanea roots y devuelve entradas {id, name, display, description, dir, source}.

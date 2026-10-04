@@ -159,3 +159,25 @@ test("config preserva claves desconocidas y globalSkills al guardar", () => {
   assert.equal(round.customKey, 42);
   assert.deepEqual(round.globalSkills, ["herdr-bmad"]);
 });
+
+test("config.save con un objeto angosto NO borra globalSkills (regresión)", () => {
+  const file = path.join(tmp, "config-narrow.json");
+  fs.writeFileSync(file, JSON.stringify({ personas: { dev: { kind: "opencode" } }, globalSkills: ["herdr-bmad"] }));
+  // caller tipo settings-agents: guarda solo personas
+  config.save({ personas: { dev: { kind: "claude" } } }, file);
+  const round = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.deepEqual(round.globalSkills, ["herdr-bmad"]);
+  assert.equal(round.personas.dev.kind, "claude");
+});
+
+test("skillMeta saca las comillas YAML de la description", () => {
+  const root = path.join(tmp, "quotes");
+  makeSkill(path.join(root, "q"), "q", '"TDD: enforce RED-GREEN-REFACTOR"');
+  const rows = skillsIndex.build({
+    globalRoots: [{ dir: root, plugin: null, source: "claude" }],
+    projectRoots: [],
+    cachePath: path.join(tmp, "c5", "skills-index.json"),
+    now: T0,
+  });
+  assert.equal(rows[0].description, "TDD: enforce RED-GREEN-REFACTOR");
+});

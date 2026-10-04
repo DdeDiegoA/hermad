@@ -40,9 +40,13 @@ function load(file = CONFIG_PATH) {
   }
 }
 
+// Mergea con lo que ya está en disco: un caller que guarda un objeto angosto
+// (p.ej. settings-agents guardaba {personas}) no debe borrar globalSkills ni
+// claves desconocidas (AC4 de S6).
 function save(config, file = CONFIG_PATH) {
+  const merged = { ...load(file), ...config };
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(config, null, 2) + "\n");
+  fs.writeFileSync(file, JSON.stringify(merged, null, 2) + "\n");
 }
 
 module.exports = { CONFIG_DIR, CONFIG_PATH, DEFAULT_PERSONAS, load, save };
