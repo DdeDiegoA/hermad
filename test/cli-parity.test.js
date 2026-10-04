@@ -85,11 +85,12 @@ test("helpText se genera desde la tabla (summary + sub + flags)", () => {
   assert.ok(help.includes("--story"));
 });
 
-test("la tabla es lazy: declara un handler inexistente sin romper el resto (FR-6.3)", () => {
-  const completion = resolve("completion");
-  assert.ok(completion, "falta completion en la tabla");
-  // El require vive dentro de run(): la tabla carga sin el handler.
-  assert.throws(() => completion.run(), /Cannot find module/);
+test("la tabla es lazy: el require del handler vive dentro de run() (FR-6.3)", () => {
+  // Requerir la tabla no carga ningun handler: cada run() hace su require adentro.
+  for (const c of COMMANDS) {
+    assert.equal(typeof c.run, "function", `${c.name}: run no es funcion`);
+    assert.match(String(c.run), /require\(/, `${c.name}: run no hace require lazy`);
+  }
   const help = execFileSync(process.execPath, [BIN, "--help"], { encoding: "utf8" });
   assert.match(help, /completion/);
   assert.doesNotThrow(() => execFileSync(process.execPath, [BIN, "--version"], { encoding: "utf8" }));
