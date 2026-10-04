@@ -166,13 +166,15 @@ function proposable(list, globals, home = os.homedir()) {
   return list.filter((s) => !pack.isPackSkill(s.dir, home) && !g.has(s.id) && !g.has(s.name));
 }
 
-function buildSuggestPrompt({ personaName, body, current, installed }) {
+// Al LLM solo le va el nombre + el rol en una línea de la persona: el cuerpo del
+// prompt nunca sale de la máquina (misma regla que discovery.buildLLMPrompt).
+function buildSuggestPrompt({ personaName, role, current, installed }) {
   const list = installed.map((s) => `- ${s.display}: ${s.description}`).join("\n");
   return [
     "Eres un selector de skills para un agente de coding.",
     `Persona: ${personaName}.`,
-    "Descripción del rol:",
-    body || "(sin descripción)",
+    "Rol (una línea):",
+    role || "(sin descripción)",
     "",
     "Skills INSTALADAS (solo podés elegir de esta lista, no inventes):",
     list,
@@ -287,8 +289,10 @@ function suggestPersona(personaName) {
 
   const p = prompts.loadPersona(personaName);
   const current = (p && p.skills) || [];
+  // body = solo para el matcher local; role = lo único que se manda al vendor.
   const body = (p && p.body) || (project.personas[personaName] || {}).rol || "";
-  const res = tryVendor(project, buildSuggestPrompt({ personaName, body, current, installed }));
+  const role = (project.personas[personaName] || {}).rol || personaName;
+  const res = tryVendor(project, buildSuggestPrompt({ personaName, role, current, installed }));
   let suggested = res.ok ? parseSuggestions(res.output) : null;
   if (!suggested) {
     console.error(res.ok ? "El vendor no devolvió JSON parseable. Uso el buscador local." : `No pude consultar el vendor (${res.error}). Uso el buscador local.`);

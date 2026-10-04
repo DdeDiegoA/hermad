@@ -53,14 +53,37 @@ test("Find.2: con --model no se imprime el aviso (el usuario ya eligió)", async
   assert.match(ctx.personas.dev.modelFlag, /sonnet/);
 });
 
-test("Find.1: el consentimiento declara los roles que discovery sí envía (en y es)", () => {
+test("Find.1: el consentimiento declara exactamente lo que se envía: nombres + rol en una línea (en y es)", () => {
   const personas = { orquestador: { modelFlag: "" } };
   const en = skillsStep.consentNote({ lang: "en", t: translator("en"), personas }, "claude", 2);
   const es = skillsStep.consentNote({ lang: "es", t: translator("es"), personas }, "claude", 2);
-  assert.match(en, /role text/i);
-  assert.match(es, /texto del rol/i);
-  // lo que se declara debe existir en el prompt real
-  const prompt = discovery.buildLLMPrompt({ list: [{ id: "x", description: "d" }], personas: ["dev"], personaBodies: { dev: "builder" } });
+  assert.match(en, /one-line role/i);
+  assert.match(es, /rol en una línea/i);
+  // lo declarado debe ser exactamente lo que el prompt real lleva: nombre + rol, sin cuerpo
+  const prompt = discovery.buildLLMPrompt({ list: [{ id: "x", description: "d" }], personas: ["dev"], personaRoles: { dev: "Amelia — build" } });
   assert.match(prompt, /Roles:/);
-  assert.match(prompt, /- dev: builder/);
+  assert.match(prompt, /- dev: Amelia — build/);
+});
+
+test("Find.1: al LLM no le llega el cuerpo del prompt de la persona (SEND LESS)", () => {
+  const body = "You are Amelia, a senior software engineer. ".repeat(100); // ~4.6k chars
+  const marker = "senior software engineer";
+  let sent = "";
+  discovery.suggest({
+    list: [{ id: "code-review", description: "Reviews diffs for bugs" }],
+    personas: ["dev"],
+    personaBodies: { dev: body }, // disponible para el matcher local…
+    personaRoles: { dev: "Amelia — build" }, // …pero al LLM solo le va el rol
+    vendor: "claude",
+    consent: true,
+    callVendor: (_vendor, _model, prompt) => {
+      sent = prompt;
+      return JSON.stringify({ global: [], byPersona: { dev: [] }, reason: "r" });
+    },
+  });
+  assert.ok(sent.length > 0, "el prompt debe haber llegado al vendor");
+  assert.ok(!sent.includes(marker), "el cuerpo del prompt no debe salir de la máquina");
+  assert.ok(!sent.includes(body));
+  assert.ok(sent.length < 2000, `prompt demasiado largo (${sent.length}); ¿se coló el cuerpo?`);
+  assert.match(sent, /- dev: Amelia — build/);
 });

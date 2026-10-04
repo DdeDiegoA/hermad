@@ -49,8 +49,14 @@ async function collect(ctx, ui) {
   }
 
   const personas = Object.keys(ctx.personas);
+  // Cuerpo completo para el matcher LOCAL (no sale de la máquina) y solo el rol
+  // en una línea para el LLM (nunca el cuerpo — decisión de seguridad).
   const personaBodies = {};
-  for (const p of personas) personaBodies[p] = (prompts.loadPersona(p) || {}).body || (ctx.personas[p] || {}).rol || "";
+  const personaRoles = {};
+  for (const p of personas) {
+    personaBodies[p] = (prompts.loadPersona(p) || {}).body || (ctx.personas[p] || {}).rol || "";
+    personaRoles[p] = (ctx.personas[p] || {}).rol || "";
+  }
 
   const vendor = (ctx.personas.orquestador || {}).kind || ctx.vendors[0];
   let consent = Boolean(ctx.flags.llmSuggest);
@@ -65,6 +71,7 @@ async function collect(ctx, ui) {
     list,
     personas,
     personaBodies,
+    personaRoles,
     vendor,
     model: modelIdFrom((ctx.personas.orquestador || {}).modelFlag || ""),
     consent: canLLM,

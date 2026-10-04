@@ -15,10 +15,11 @@ test("parseSuggestions extrae el JSON aunque venga con texto alrededor", () => {
   assert.equal(parseSuggestions("sin json"), null);
 });
 
-test("buildSuggestPrompt solo ofrece skills instaladas", () => {
-  const p = buildSuggestPrompt({ personaName: "dev", body: "builder", current: ["a"], installed: [{ display: "b", description: "zz" }] });
+test("buildSuggestPrompt solo ofrece skills instaladas y manda el rol, no el cuerpo", () => {
+  const p = buildSuggestPrompt({ personaName: "dev", role: "Amelia — build", current: ["a"], installed: [{ display: "b", description: "zz" }] });
   assert.match(p, /- b: zz/);
   assert.match(p, /no inventes/);
+  assert.match(p, /Rol \(una línea\):\nAmelia — build/);
 });
 
 test("applyGlobal agrega sin duplicar y remueve", () => {

@@ -41,10 +41,12 @@ function localSuggest({ list = [], personas = [], personaBodies = {}, globals = 
   return { source: "local", global: globalOptions(list, null, globals), byPersona, warnings: [] };
 }
 
-// Catálogo que se manda al LLM: nombre + descripción, nunca el cuerpo (FR-2.4).
-function buildLLMPrompt({ list = [], personas = [], personaBodies = {} }) {
+// Catálogo que se manda al LLM: nombre + descripción de cada skill (FR-2.4). De
+// las personas va SOLO el nombre y el rol en una línea: el cuerpo del prompt
+// nunca sale de la máquina (decisión de seguridad — SEND LESS).
+function buildLLMPrompt({ list = [], personas = [], personaRoles = {} }) {
   const catalog = list.map((s) => `- ${s.id}: ${s.description || ""}`).join("\n");
-  const roles = personas.map((p) => `- ${p}: ${personaBodies[p] || ""}`).join("\n");
+  const roles = personas.map((p) => `- ${p}: ${personaRoles[p] || ""}`).join("\n");
   return [
     "You are selecting skills for a team of coding agents.",
     "Only choose from the INSTALLED list; never invent names.",
@@ -74,8 +76,8 @@ function parseLLM(text) {
   }
 }
 
-function llmSuggest({ list, personas, personaBodies, vendor, model, callVendor, globals = [] }) {
-  const raw = callVendor(vendor, model, buildLLMPrompt({ list, personas, personaBodies }));
+function llmSuggest({ list, personas, personaRoles, vendor, model, callVendor, globals = [] }) {
+  const raw = callVendor(vendor, model, buildLLMPrompt({ list, personas, personaRoles }));
   const parsed = parseLLM(raw);
   if (!parsed) throw new Error("respuesta no parseable");
   const ids = new Set(list.map((s) => s.id));
@@ -92,12 +94,12 @@ function llmSuggest({ list, personas, personaBodies, vendor, model, callVendor, 
 // local + warning (nunca corta el paso). Sin skills instaladas: local vacío, sin
 // warnings (FR-2.5).
 function suggest(opts = {}) {
-  const { list = [], personas = [], personaBodies = {}, vendor, model, consent = false, globals = [], top = LOCAL_TOP, threshold = LOCAL_THRESHOLD, callVendor } = opts;
+  const { list = [], personas = [], personaBodies = {}, personaRoles = {}, vendor, model, consent = false, globals = [], top = LOCAL_TOP, threshold = LOCAL_THRESHOLD, callVendor } = opts;
   const base = { list, personas, personaBodies, globals, top, threshold };
   if (!list.length) return { source: "local", global: [], byPersona: {}, warnings: [] };
   if (consent && vendor && typeof callVendor === "function") {
     try {
-      return llmSuggest({ ...base, vendor, model, callVendor });
+      return llmSuggest({ ...base, personaRoles, vendor, model, callVendor });
     } catch (err) {
       return { ...localSuggest(base), warnings: [`${vendor}: ${err.message}`] };
     }

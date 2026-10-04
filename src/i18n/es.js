@@ -51,8 +51,8 @@ module.exports = {
   "skills.scanning": "Indexando skills instaladas…",
   "skills.none": "No encontré skills instaladas. Seguimos sin ellas; tu equipo funciona igual.",
   "skills.consent.title": "Antes de seguir: ¿enviar descripciones a un modelo?",
-  "skills.consent.body": "Para recomendarte mejor puedo pedirle a {vendor} ({model}) que lea tus skills y los roles de tu equipo.",
-  "skills.consent.sent": "Se enviaría: el nombre y la descripción corta de cada skill, más el nombre y el texto del rol de cada persona ({n} skills)",
+  "skills.consent.body": "Para recomendarte mejor puedo pedirle a {vendor} ({model}) que lea el nombre y la descripción de tus skills y el nombre y el rol en una línea de cada persona.",
+  "skills.consent.sent": "Se enviaría: el nombre y la descripción corta de cada skill, más el nombre y el rol en una línea de cada persona ({n} skills)",
   "skills.consent.notsent": "NO se enviaría: el contenido de las skills, tus archivos ni tus proyectos",
   "skills.consent.dest": "Destino: {vendor}, con el modelo {model} que elegiste en el paso anterior",
   "skills.consent.local":
