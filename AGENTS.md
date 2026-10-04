@@ -63,7 +63,7 @@
 
 ## Reglas del equipo
 
-- **Regla inviolable: el orquestador SOLO delega.** Nunca edita código/docs/tests/configs, nunca hace hotfixes (ni urgentes), nunca corre tests ni investiga código: spawnea/manda al peer correcto. Excepciones: comandos hermad/herdr, merges aprobados por el reviewer, AGENTS.md y journal. (Diego, 2026-10-03; en curso: story CORE-ORQ la hornea en `templates/prompts/orquestador.md`.)
+- **Regla inviolable: el orquestador SOLO delega.** Nunca edita código/docs/tests/configs, nunca hace hotfixes (ni urgentes), nunca corre tests ni investiga código: spawnea/manda al peer correcto. Excepciones: comandos hermad/herdr, merges aprobados por el reviewer, AGENTS.md y journal. (Diego, 2026-10-03; horneada en `templates/prompts/orquestador.md`, commands y briefing — CORE-ORQ mergeada, test `test/orquestador-rule.test.js`.)
 - Política de aprobación: auto, salvo auth/dinero/DB/seguridad → escala a Diego.
 - Un solo writer al repo; stories paralelas → `git worktree`/branch.
 - Peer-to-peer permitido (reviewer→dev, pm→devs); el orquestador coordina el top.
