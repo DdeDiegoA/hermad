@@ -6,12 +6,26 @@
     "hermad": "bin/hermad.js"
   },
   "type": "commonjs",
+  "files": [
+    "bin",
+    "src",
+    "skill",
+    "command",
+    "templates"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DdeDiegoA/hermad.git"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.12"
   },
   "scripts": {
     "start": "node bin/hermad.js",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1"
   },
   "license": "MIT"
 }
