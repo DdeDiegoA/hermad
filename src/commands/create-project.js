@@ -4,8 +4,10 @@ const os = require("os");
 const path = require("path");
 const { execSync } = require("child_process");
 const config = require("../lib/config");
+const bmad = require("../lib/bmad");
 const personasEnv = require("../lib/personas-env");
 const render = require("../lib/render");
+const vendors = require("../lib/vendors");
 const { saveActiveProject } = require("../lib/active-project");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -14,11 +16,16 @@ const AGENTS_TEMPLATE = path.join(REPO_ROOT, "templates", "AGENTS-template.md");
 // la fuente de verdad nativa es ~/.hermad/active-project.json (ver lib/active-project.js).
 const ACTIVE_PERSONAS_ENV = path.join(os.homedir(), ".hermad", "personas.env");
 
-// macOS/Linux: el instalador de BMad (clack) necesita TTY y columnas → script + stty.
-// Windows: la consola ya es un TTY con stdio heredado; npx directo.
-const BMAD_ARGS = "npx -y bmad-method@latest install --yes --directory . --modules bmm --tools claude-code,opencode --communication-language Spanish --document-output-language Spanish";
-const BMAD_INSTALL_CMD = process.platform === "win32" ? BMAD_ARGS :
-  "script -q /tmp/b.log sh -c 'stty cols 160 rows 50 2>/dev/null || true; exec npx -y bmad-method@latest install --yes --directory . --modules bmm --tools claude-code,opencode --communication-language Spanish --document-output-language Spanish'";
+// Plan de BMad (idioma de config, tools por vendor detectado): puro y testeable,
+// lo usa `run` para saber si instalar y con qué comando (FR-1.4).
+function bmadPlan({ config: cfg, args = [], detectedVendors = [], platform = process.platform, tmpdir } = {}) {
+  return {
+    install: bmad.wantsInstall(cfg, args),
+    command: bmad.installCommand({ language: cfg.language || "en", vendors: detectedVendors, platform, tmpdir }),
+    // Si lo instalo, la skill bmad-help entra al proyecto (design §2).
+    skillAdd: ["bmad-help"],
+  };
+}
 
 function run(args) {
   const name = args.find((a) => !a.startsWith("--"));
@@ -44,17 +51,21 @@ function run(args) {
 
   const cfg = config.load();
   const rendered = personasEnv.render({ projectDir, label: name, personas: cfg.personas });
+  const plan = bmadPlan({ config: cfg, args, detectedVendors: vendors.detectInstalledVendors() });
 
   // Copia canónica del proyecto (versionable, sirve para reactivar el workspace luego).
   fs.writeFileSync(path.join(projectDir, ".hermad", "personas.env"), rendered);
-  fs.writeFileSync(
-    path.join(projectDir, ".hermad", "project.json"),
-    JSON.stringify(
-      { name, label: name, projectDir, personas: cfg.personas, departamentos: personasEnv.DEFAULT_DEPARTAMENTOS, createdAt: new Date().toISOString() },
-      null,
-      2
-    ) + "\n"
-  );
+  const projectJson = {
+    name,
+    label: name,
+    projectDir,
+    personas: cfg.personas,
+    departamentos: personasEnv.DEFAULT_DEPARTAMENTOS,
+    createdAt: new Date().toISOString(),
+  };
+  // Con BMad instalado, bmad-help queda disponible para el proyecto (design §2).
+  if (plan.install) projectJson.skills = { add: plan.skillAdd };
+  fs.writeFileSync(path.join(projectDir, ".hermad", "project.json"), JSON.stringify(projectJson, null, 2) + "\n");
   // Copia bash de referencia, por si alguien corre skill/scripts/orquestar.sh a mano.
   fs.mkdirSync(path.dirname(ACTIVE_PERSONAS_ENV), { recursive: true });
   fs.writeFileSync(ACTIVE_PERSONAS_ENV, rendered);
@@ -68,12 +79,12 @@ function run(args) {
   saveActiveProject({ projectDir, label: name, personas: cfg.personas, departamentos: personasEnv.DEFAULT_DEPARTAMENTOS });
   console.log(`[+] proyecto activado (hermad start-team / hermad orchestrate ya apuntan acá)`);
 
-  if (args.includes("--run-bmad-install")) {
+  if (plan.install) {
     console.log("[+] instalando BMad (requiere TTY)...");
-    execSync(BMAD_INSTALL_CMD, { cwd: projectDir, stdio: "inherit", shell: process.platform === "win32" ? true : "/bin/sh" });
+    execSync(plan.command, { cwd: projectDir, stdio: "inherit", shell: process.platform === "win32" ? true : "/bin/sh" });
   } else {
     console.log("\nSiguiente paso — instalar BMad en el proyecto (requiere TTY):");
-    console.log(`  cd ${projectDir} && ${BMAD_INSTALL_CMD}`);
+    console.log(`  cd ${projectDir} && ${plan.command}`);
   }
 
   console.log(`\nListo. Para arrancar el workspace de agentes:`);
@@ -81,4 +92,4 @@ function run(args) {
   console.log('  hermad orchestrate "..."   # + le manda el intent al orquestador');
 }
 
-module.exports = { run };
+module.exports = { run, bmadPlan };
