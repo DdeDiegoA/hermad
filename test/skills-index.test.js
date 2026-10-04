@@ -128,6 +128,18 @@ test("match rankea por name x3 / description x1", () => {
   assert.ok(!rows.some((s) => s.id === "c"));
 });
 
+test("match hace stemming: 'debug' matchea 'systematic-debugging' (regresión)", () => {
+  const docs = [
+    { id: "systematic-debugging", name: "systematic-debugging", description: "root-cause method", dir: "/a", source: "hermes" },
+    { id: "deploy", name: "deploy", description: "ship to production", dir: "/b", source: "claude" },
+  ];
+  const rows = skillsIndex.match("debug", { list: docs });
+  assert.equal(rows[0].id, "systematic-debugging", `debug debe matchear debugging: ${JSON.stringify(rows)}`);
+  assert.ok(!rows.some((s) => s.id === "deploy"), "no matchea términos sin relación");
+  // el sufijo tampoco rompe el match exacto
+  assert.equal(skillsIndex.match("debugging", { list: docs })[0].id, "systematic-debugging");
+});
+
 test("match excluye las globales efectivas y aplica el boost de la persona", () => {
   const docs = [
     { id: "a", name: "common", description: "x", dir: "/a", source: "claude" },
