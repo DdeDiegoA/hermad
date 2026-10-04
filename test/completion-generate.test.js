@@ -22,12 +22,21 @@ function stripComments(out) {
   return out.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
 }
 
+// El match debe ser por token entero: includes("--from") daría falso positivo
+// contra "--from-global". El lookaround (?<![\w-])...(?![\w-]) exige que el token
+// no esté pegado a otro \w o guion; ojo que "-" cuenta, justo lo que separa
+// "--from" de "--from-global".
+function hasToken(body, token) {
+  const esc = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\w-])${esc}(?![\\w-])`).test(body);
+}
+
 function assertCovers(shell, gen, commands) {
   const body = stripComments(gen.generate(commands));
   assert.equal(typeof body, "string", `${shell}: no devuelve string`);
   for (const c of commands) {
-    assert.ok(body.includes(c.name), `${shell}: falta el comando ${c.name} en el cuerpo`);
-    for (const flag of c.flags) assert.ok(body.includes(flag), `${shell}: ${c.name} sin el flag ${flag} en el cuerpo`);
+    assert.ok(hasToken(body, c.name), `${shell}: falta el comando ${c.name} en el cuerpo`);
+    for (const flag of c.flags) assert.ok(hasToken(body, flag), `${shell}: ${c.name} sin el flag ${flag} en el cuerpo`);
   }
 }
 
@@ -44,6 +53,17 @@ test("la paridad no es vacua: si un comando desaparece del cuerpo, el check fall
     .map((l) => (/^\s*#/.test(l) ? l : l.split(victim.name).join(""))) // borra del cuerpo, deja el header
     .join("\n");
   assert.throws(() => assertCovers("zsh", { generate: () => broken }, COMMANDS), /falta el comando daemon/);
+});
+
+test("la paridad de flags no es vacua: quitar --from (dejando --from-global) falla", () => {
+  const out = GENERATORS.zsh.generate(COMMANDS);
+  // --from-global sigue presente: un includes("--from") crudo pasaría igual.
+  const broken = out
+    .split("\n")
+    .map((l) => (/^\s*#/.test(l) ? l : l.replace(/(?<![\w-])--from(?![\w-])/g, "")))
+    .join("\n");
+  assert.ok(broken.includes("--from-global"), "el mutante conserva --from-global");
+  assert.throws(() => assertCovers("zsh", { generate: () => broken }, COMMANDS), /sin el flag --from/);
 });
 
 test("bash es compatible con 3.2: sin compopt ni arrays asociativos (FR-6.5)", () => {
