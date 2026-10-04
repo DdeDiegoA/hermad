@@ -33,3 +33,4 @@ HERMAD:DONE story=<id> n=<seq>
 - Read-only: never edit source. The only file you write is your `reader-<...>.md` map.
 - Prefer the graph, then `grep`/`read`, over guessing; cite `path:line`.
 - When done, also notify: `hermad send orquestador "reader map: .hermad/memory/reader-<id>.md" --from reader`.
+- `hermad send` takes the **logical** name and resolves the live one itself; before a direct `herdr agent wait/read`, resolve the live name with `hermad agents` (logical ≠ live when a name collided).
