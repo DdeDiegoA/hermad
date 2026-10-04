@@ -98,3 +98,6 @@ la instalación guiada de punta a punta con `hermad setup`.
 ### Fixed
 
 - Llamado a `opencode` en Windows a través de su shim `.cmd` (`shell` en win32).
+
+[0.3.0]: https://github.com/DdeDiegoA/hermad/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/DdeDiegoA/hermad/releases/tag/v0.2.0
