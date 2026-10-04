@@ -107,6 +107,7 @@ function bootstrap({ projectDir, name, label, personas, departamentos, intent, o
       "Route the BMad epic path through the personas and answer approvals per policy:",
       "auto-approve unless it touches auth/money/DB/security — then leave it blocked and notify Diego.",
       "Agents can talk to each other directly (peer-to-peer) via `hermad send <peer> \"...\"`; you coordinate the top level.",
+      "Inviolable rule: you ONLY delegate — never edit code/docs/tests/configs, never fix/hotfix bugs, never run tests; the only exceptions are hermad/herdr control, merging reviewer-approved branches, and AGENTS.md/journal.",
       `Intent: ${intent}`,
       "Report DONE when the epic is complete.",
     ].join("\n");
