@@ -64,7 +64,8 @@
 - 2026-10-04 — Configuración de skills (Diego):
   - `globalSkills` (`~/.hermad/config.json`): `caveman:caveman`, `ponytail:ponytail`, `herdr-bmad`, `andrej-karpathy-skills:karpathy-guidelines`, `graphify`, `bmad-help`. Se cargan en todos los agentes; las no nativas del vendor (p. ej. plugins de claude en opencode/hermes) van por ruta SKILL.md — aceptado el costo de contexto.
   - Frontmatter de personas: sin `herdr-bmad`, `rag-pipeline` ni `graphify` (SKILLS-CFG mergeada 79b62f2; reader `skills: []`).
-  - Bug abierto (SKILLS-KARPATHY, dev-2): `andrej-karpathy-skills:karpathy-guidelines` se cae de la allowlist (5/6 globales llegan); + `skills match` sin stemming (debug ≠ debugging).
+  - SKILLS-KARPATHY mergeada: el "drop de karpathy" fue falsa alarma (script de review con lista hardcodeada); quedó hardening (namespace por manifest) + stemming en `skills match`. 6/6 globales verificadas en los 4 vendors.
+  - OJO: `bmad-help` es project-scoped (`.claude/skills/` de este repo, untracked) → en otros proyectos no resuelve.
   - Skills por tarea: el orquestador corre `hermad skills match` antes de CADA delegación y pasa todas las relevantes con `--skills` (sin tope), y las reporta.
 
 ## Reglas del equipo
