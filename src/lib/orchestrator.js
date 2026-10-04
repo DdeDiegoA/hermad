@@ -4,13 +4,15 @@ const prompts = require("./prompts");
 const vendors = require("./vendors");
 const render = require("./render");
 const daemon = require("./daemon");
+const placement = require("./placement");
+const agents = require("./agents");
 
 // Native port of skill/scripts/orquestar.sh: workspace + orchestrator (root pane) +
 // departments in tabs with a grid of up to 4 columns x 2 rows + agents, and optionally
 // the briefing+intent to the orchestrator. Unlike the original bash, an agent name
 // collision (agent_name_taken — already alive in another workspace/project) does not
 // abort the whole bootstrap: it is logged and skipped, and the rest of the team is set up.
-function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrchestrator = false, withDaemon = true, compactPct = 50 }) {
+function bootstrap({ projectDir, name, label, personas, departamentos, intent, onlyOrchestrator = false, withDaemon = true, compactPct = 50 }) {
   herdr.ensureInstalled();
 
   // Artefactos por proyecto (una sola vez): memoria claude + comandos + gitignore.
@@ -19,6 +21,22 @@ function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrc
   render.ensureGitignore(projectDir);
 
   const { workspaceId, rootPaneId } = herdr.workspaceCreate(projectDir, label);
+
+  // El tab default pasa a llamarse `gerencia` (ahí vive el orquestador). Es lo
+  // único que existe tras workspaceCreate, así que tabList[0] es ese tab.
+  // Best-effort: un fallo de herdr solo se loguea.
+  try {
+    const [defaultTab] = herdr.tabList(workspaceId);
+    if (defaultTab) {
+      const r = herdr.tabRename(defaultTab.tab_id, placement.MANAGEMENT_TAB);
+      if (!r.ok) console.log(`[!] no pude renombrar el tab default a '${placement.MANAGEMENT_TAB}' (${r.code || "error"})`);
+    }
+  } catch (err) {
+    console.log(`[!] no pude renombrar el tab default (${err.message || err.code})`);
+  }
+
+  // Contexto mínimo para `agents.start` (alias + registro en state.agents).
+  const project = { projectDir, name: name || label };
 
   // Pane del daemon en el tab default — se divide ANTES de arrancar cualquier
   // agente full-screen en el root (si no, el pane nuevo queda sin shell).
@@ -40,11 +58,15 @@ function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrc
   const orquestador = personas.orquestador;
   if (!orquestador) throw new Error('missing "orquestador" persona in config');
   const orqArtifacts = render.renderPersona({ projectDir, name: "orquestador", persona: orquestador, compactPct });
-  console.log(`[+] orquestador (${orquestador.kind}) on ${rootPaneId} — ${orquestador.rol}`);
-  startAgentSafe("orquestador", orquestador, rootPaneId, vendors.startPlan(orquestador.kind, "orquestador", orquestador, orqArtifacts));
+  const orqLive = startAgentSafe(project, "orquestador", orquestador, rootPaneId, vendors.startPlan(orquestador.kind, "orquestador", orquestador, orqArtifacts)) || "orquestador";
+  console.log(`[+] orquestador (${orquestador.kind}) on ${rootPaneId} — ${orquestador.rol}${orqLive !== "orquestador" ? ` (vivo ${orqLive})` : ""}`);
 
   const workers = [];
   for (const [tabLabel, names] of onlyOrchestrator ? [] : departamentos) {
+    if (tabLabel === placement.MANAGEMENT_TAB) {
+      console.log(`[!] '${tabLabel}' es el tab del orquestador, no de workers — ignoro esa entrada de departamentos`);
+      continue;
+    }
     const { rootPaneId: tabRoot } = herdr.tabCreate(workspaceId, projectDir, tabLabel);
 
     // Pitfall from the skill: do not split a pane that has a full-screen agent running
@@ -60,9 +82,9 @@ function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrc
       const persona = personas[name];
       if (!persona) throw new Error(`persona '${name}' not defined in personas`);
       const artifacts = render.renderPersona({ projectDir, name, persona, compactPct });
-      console.log(`[+] ${name} (${persona.kind}) on ${panes[i]} [${tabLabel}] — ${persona.rol}`);
-      startAgentSafe(name, persona, panes[i], vendors.startPlan(persona.kind, name, persona, artifacts));
-      workers.push(name);
+      const live = startAgentSafe(project, name, persona, panes[i], vendors.startPlan(persona.kind, name, persona, artifacts));
+      console.log(`[+] ${name} (${persona.kind}) on ${panes[i]} [${tabLabel}] — ${persona.rol}${live && live !== name ? ` (vivo ${live})` : ""}`);
+      workers.push(live && live !== name ? `${name}→${live}` : name);
     });
   }
 
@@ -77,16 +99,18 @@ function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrc
   }
 
   if (intent) {
+    // Roster lógico, con `lógico→vivo` cuando el nombre chocó y arrancó con alias.
+    const roster = [`orquestador${orqLive !== "orquestador" ? `→${orqLive}` : ""}`, ...workers].join(" ");
     const briefing = [
       `You are Hermad, the orchestrator of this Herdr workspace. Project: ${projectDir} (BMad installed).`,
-      `Agents: orquestador ${workers.join(" ")} (in per-department tabs). Use 'herdr agent list' for the live roster.`,
+      `Agents: ${roster} (in per-department tabs). Use 'herdr agent list' for the live roster.`,
       "Route the BMad epic path through the personas and answer approvals per policy:",
       "auto-approve unless it touches auth/money/DB/security — then leave it blocked and notify Diego.",
       "Agents can talk to each other directly (peer-to-peer) via `hermad send <peer> \"...\"`; you coordinate the top level.",
       `Intent: ${intent}`,
       "Report DONE when the epic is complete.",
     ].join("\n");
-    herdr.agentPrompt("orquestador", briefing);
+    herdr.agentPrompt(orqLive, briefing);
     console.log(`[+] Workspace: ${workspaceId} | Orchestrator started with intent. View the board with: herdr`);
   } else {
     console.log(`[+] Workspace: ${workspaceId} | ${onlyOrchestrator ? "Orchestrator ready (workers on demand)" : "Agents connected, no initial prompt"}. View the board with: herdr`);
@@ -95,30 +119,24 @@ function bootstrap({ projectDir, label, personas, departamentos, intent, onlyOrc
   return { workspaceId };
 }
 
-function startAgentSafe(name, persona, paneId, plan) {
+// Deprecado: `agents.start` es el único camino de arranque (resuelve el alias si
+// el nombre está tomado y registra state.agents). Wrapper conservado por compat
+// de la superficie pública; devuelve el nombre vivo, o null si quedó sin arrancar.
+function startAgentSafe(project, name, persona, paneId, plan) {
   try {
-    herdr.agentStart(name, persona.kind, paneId, plan.args);
-
-    // Fallback (vendors sin prompt-por-archivo): inyectar el prompt como primer
-    // mensaje tras llegar a idle. Claude/opencode lo reciben por archivo, sin
-    // mensaje inicial visible en el TUI.
-    if (plan.promptText) {
-      try {
-        herdr.agentWait(name, ["idle"], 60000);
-      } catch (err) {
-        console.log(`[!] ${name}: timed out waiting for idle, skipping initial prompt injection (${err.message || err.code})`);
-        return;
-      }
-      try {
-        herdr.agentPrompt(name, plan.promptText);
-      } catch (err) {
-        console.log(`[!] ${name}: initial prompt injection failed (${err.message || err.code})`);
-      }
-    }
+    return agents.start({
+      project,
+      logical: name,
+      persona: name,
+      kind: persona.kind,
+      paneId,
+      args: plan.args,
+      promptText: plan.promptText,
+    });
   } catch (err) {
     if (err.code === "agent_name_taken") {
-      console.log(`[=] ${name} is already alive in another pane — leaving it untouched. (${err.message})`);
-      return;
+      console.log(`[=] ${name}: ${err.message} — lo dejo sin arrancar`);
+      return null;
     }
     throw err;
   }
