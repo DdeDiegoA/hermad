@@ -114,6 +114,29 @@ test("render separa skills nativas de por-ruta según el vendor (agentName keyea
   assert.match(fs.readFileSync(hermes.promptFile, "utf8"), /## Task skills/);
 });
 
+test("safeSkillDir no pisa ids que aplanan igual (superpowers:tdd vs superpowers-tdd)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-collide-"));
+  const home = process.env.HOME;
+  makeSkill(path.join(home, ".claude", "plugins", "cache", "mp", "superpowers", "1.0.0", "skills", "tdd"), "tdd", "plugin claude");
+  makeSkill(path.join(dir, ".claude", "skills", "superpowers-tdd"), "superpowers-tdd", "proyecto");
+
+  const a = render.renderPersona({ projectDir: dir, name: "dev", agentName: "collide", persona: { kind: "claude", rol: "x" }, extraSkills: ["superpowers:tdd", "superpowers-tdd"] });
+  assert.deepEqual(a.skillsByPath, [], "claude symlinkea todas: las dos van al plugin");
+
+  const skillsDir = path.join(dir, ".hermad", "generated", "claude", "collide", "skills");
+  const folders = fs.readdirSync(skillsDir);
+  assert.equal(folders.length, 2, `dos carpetas, got ${JSON.stringify(folders)}`);
+  assert.equal(new Set(folders).size, 2, "sin sobreescritura silenciosa");
+  const bodies = folders.map((n) => fs.readFileSync(path.join(skillsDir, n, "SKILL.md"), "utf8"));
+  assert.notEqual(bodies[0], bodies[1], "cada carpeta apunta a su skill real");
+  assert.match(bodies.join("\n"), /plugin claude/);
+  assert.match(bodies.join("\n"), /proyecto/);
+
+  // determinista e independiente del orden; un nombre único queda pelado.
+  assert.deepEqual(render.skillFolders(["a:b", "a-b"]).slice().reverse(), render.skillFolders(["a-b", "a:b"]));
+  assert.deepEqual(render.skillFolders(["proj-skill"]), ["proj-skill"]);
+});
+
 test("globales efectivas y --skills entran en la allowlist sin duplicados", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-allow-"));
   const a = render.renderPersona({ projectDir: dir, name: "ghost", persona: { kind: "opencode", rol: "x" }, globs: ["gskill"], extraSkills: ["gskill", "extra"] });
