@@ -19,9 +19,22 @@ test("settings agents (plantilla global) NO modifica el project.json del activo"
   saveActiveProject({ projectDir: dir, label: "ORIG", personas: { dev: { kind: "claude", modelFlag: "--model opus", rol: "dev" } }, departamentos: [] });
   const before = fs.readFileSync(projectJson, "utf8");
 
-  applyGlobal({ dev: { kind: "opencode", modelFlag: "-m z", rol: "dev" } });
+  applyGlobal({ personas: { dev: { kind: "opencode", modelFlag: "-m z", rol: "dev" } } });
 
   assert.equal(fs.readFileSync(projectJson, "utf8"), before, "project.json intacto");
   const cfg = JSON.parse(fs.readFileSync(path.join(process.env.HOME, ".hermad", "config.json"), "utf8"));
   assert.equal(cfg.personas.dev.kind, "opencode", "la plantilla global sí cambió");
+});
+
+test("settings agents preserva globalSkills y claves desconocidas (AC4 S6)", () => {
+  const configPath = path.join(process.env.HOME, ".hermad", "config.json");
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, JSON.stringify({ personas: { dev: { kind: "claude" } }, globalSkills: ["herdr-bmad"], customKey: 7 }));
+
+  applyGlobal({ personas: { dev: { kind: "opencode", modelFlag: "", rol: "dev" } } });
+
+  const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  assert.deepEqual(cfg.globalSkills, ["herdr-bmad"], "globalSkills sobrevive");
+  assert.equal(cfg.customKey, 7, "clave desconocida sobrevive");
+  assert.equal(cfg.personas.dev.kind, "opencode");
 });
