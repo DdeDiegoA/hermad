@@ -1,60 +1,82 @@
-# SPEC — Mejoras hermad 2026-10
+---
+artifact: SPEC
+epic: hermad para todos
+version: "0.3"
+date: 2026-10-04
+author: pm (John)
+companions:
+  - docs/hermad-para-todos-prd.md
+  - docs/hermad-para-todos-design.md
+  - docs/hermad-para-todos-ux.md
+  - AGENTS.md
+sources:
+  - docs/hermad-para-todos-research.md
+  - docs/hermad-para-todos-brief.md
+  - docs/mejoras-2026-10.md (epica anterior, cerrada)
+---
 
-Fuente: `docs/mejoras-2026-10.md` (pedidos de Diego + decisiones cerradas). Diseño: `docs/mejoras-2026-10-design.md` (architect). Mapa de código: `docs/mejoras-2026-10-map.md` (reader). Este spec no reabre decisiones: solo fija problema, usuarios, alcance y criterio de éxito.
+# SPEC — hermad para todos
 
-## Usuarios
+Condensado ejecutable de la epica. El detalle vive en los `companions`; aca va el kernel:
+por que, que capacidades, que limites, que NO, y como se sabe que funciono.
 
-- **Diego** — mantenedor de hermad. Corre equipos de agentes en varios proyectos a la vez y opera el CLI a mano.
-- **El orquestador y los workers** — agentes (claude/opencode/hermes) que consumen el CLI y el buzón para handoffs peer-to-peer. Son usuarios del contrato: nombres, buzón y rutas tienen que resolver solos.
-- **Equipo técnico** — lee `--help`, `templates/prompts/*` y `docs/vendors.md` para operar el sistema.
+## Why
 
-## Dolor (lo que hoy duele)
+Hermad funciona **solo porque la maquina de Diego ya tiene todo lo que asume**: ~30 skills propias,
+plugins, BMad por proyecto, dos vendors autenticados y `herdr` en el PATH. Un tercero que corre
+`hermad setup` obtiene personas que nombran skills `bmad-*` inexistentes, vendors y modelos de otra
+maquina, textos que dicen "Diego", symlinks en vendors que no instalo, un `update` que exige un clone
+git y ningun completion de shell. **No faltan features: falta un primer usuario que no sea Diego.**
 
-1. **Colisión de nombres entre proyectos.** `orquestador` ya está tomado → `agent_name_taken` y el proyecto queda sin ese agente (`startAgentSafe` solo loguea; `plan-devs` sigue sin dropear).
-2. **Agentes terminados que quedan vivos.** Nadie cierra el pane; el workspace se llena de agentes idle.
-3. **Agentes que caen en el tab equivocado.** `reader` no está en `DEFAULT_DEPARTAMENTOS` y `paneForAgent` devuelve `null` → `spawn` aborta; el move best-effort deja el pane junto al daemon.
-4. **El tab del orquestador se llama `1`.** No dice qué es.
-5. **Skills rígidas.** Con ~300 skills instaladas, la allowlist sale del frontmatter de la persona y no de la tarea; no hay skills globales ni forma barata de elegir las correctas.
+## Capabilities
 
-## Éxito (observable, sin métricas inventadas)
+| id | capability | intent | success |
+|---|---|---|---|
+| CAP-1 | Tabla unica de comandos (`COMMANDS`) que alimenta HELP, dispatch y completion | que agregar un comando no pueda desincronizar la ayuda ni el TAB | `test/cli-parity.test.js` falla si la tabla y los `--flag` leidos por `src/commands/*` divergen; `hermad --help` se genera desde la tabla |
+| CAP-2 | Modo de permisos explicito y persistido (bypass vs prompting) | que correr agentes sin permisos sea una decision consciente, una sola vez, y nunca un default silencioso | `config.permissions.mode` gobierna spawn/start-team/plan-devs via `render`; `--yes` nunca activa bypass; la config legacy no pierde claves |
+| CAP-3 | Deudas que le pegan a terceros, cerradas | que un usuario nuevo no vea agentes cerrándose antes de tiempo ni tabs equivocados | `spawn --story` registra ownership y el auto-close no cierra un dev antes del DONE del reviewer; `basePersona` resuelve nombres colisionados |
+| CAP-4 | Completion de comandos y flags en 4 shells | que el CLI se pueda descubrir sin memorizar 16 subcomandos | `hermad completion <shell>` imprime el script; `install` idempotente; paridad con la tabla verde en CI (Linux + `pwsh` en Windows) |
+| CAP-5 | Prompts autosuficientes y BMad opcional | que una persona arranque y trabaje sin BMad, sin warnings y sin strings del entorno del autor | con BMad ausente no hay warnings; el grep de A2 da 0 en `src templates command skill` |
+| CAP-6 | Nucleo del wizard (UI, i18n, deteccion, pack, metodo de instalacion) | tener las piezas reusables antes de escribir un solo paso | `ui.headless` resuelve todo con stdin cerrado; `pack.install`/`relink` atomicos e idempotentes; `--yes` nunca se cuelga |
+| CAP-7 | `hermad setup` guiado de punta a punta | que un usuario nuevo llegue a un equipo andando sin editar JSON | en entorno limpio con un vendor: `setup → create-project → start-team` sin errores ni warnings de skills |
+| CAP-8 | Instalacion y update por metodo detectado | que `update` funcione igual en npm global y en clone git | `hermad update` detecta el metodo, actualiza y relinkea el pack; metodo desconocido → instrucciones y exit 0 |
 
-- Los 5 pedidos se pueden ejercitar a mano con los comandos nuevos: `hermad agents`, `spawn --skills`, `send --skills`, `skills list|match|global`, tab `gerencia`, auto-close y ubicación por departamento.
-- `npm run test` verde: los 14 tests actuales más los tests nuevos de cada story (stories.yaml, campo `ac`). Los tests usan io inyectable/`execFileSync` stub — no requieren herdr ni red.
-- Ninguna decisión del diseño queda sin implementar o sin test: si no se puede testear con stub, queda dicho en la story.
+## Constraints
 
-## Alcance
+- **Dependencias:** la unica nueva admitida es `@clack/prompts`, con `import()` dinamico solo en
+  `setup`/`update`/`settings permissions`; el resto del CLI sigue con stdlib. `engines.node >= 20.12`.
+- **Tests:** `node --test`, io inyectable (stubs de `execFileSync`, `fs`, `stdin`), sin `herdr` ni red.
+  Cada FR nuevo deja al menos un test.
+- **Paralelismo:** maximo 3 devs; `files` sin solape entre stories concurrentes; un solo writer por archivo.
+- **Seguridad:** el modo bypass es decision de Diego. Sin aprobacion explicita no se mergea (gate en
+  `HPT-CONFIG-PERMS` y `HPT-SETUP`). No hay auth, dinero ni DB en la epica.
+- **Compatibilidad:** el setup y la config actuales de Diego siguen funcionando (config legacy ⇒ bypass +
+  aviso, sin regresion); Windows conserva el fallback symlink→copia.
+- **Distribucion:** se instala desde GitHub (`npm i -g github:DdeDiegoA/hermad`); no se publica al registry.
 
-Cinco pedidos, agrupados en 7 stories (S1–S7) siguiendo los tracks A–D del diseño:
+## Non-goals
 
-| Track | Contenido | Stories |
-|---|---|---|
-| A0 | Lock + escritura atómica de `state.json` (D0c) — **va primero**, hoy hay carrera real | S1 |
-| — | Wrappers herdr (`paneClose`, `tabRename`) + superficie CLI | S2 |
-| A | Nombre lógico vs vivo (`lib/agents.js`) y sus consumidores | S3 |
-| A | Auto-close de agentes terminados | S4 |
-| B | Departamentos garantizados + tab `gerencia` | S5 |
-| C | Índice de skills + matcher + `globalSkills` | S6 |
-| D | Entrega de skills por tarea (spawn/send/render) | S7 |
+Publicar en el registry de npm · Homebrew tap · `curl | sh` · completion con valores dinamicos
+(`hermad __complete`) · embeddings para el matcher · soporte oficial de codex/gemini (quedan
+experimentales) · TUI persistente (el wizard es one-shot) · migrar los proyectos existentes de Diego ·
+`herdr agent rename` · telemetria · instalar vendors o editar personas dentro del wizard.
 
-**Fuera de alcance:** compact 50% y el watchdog del daemon (ya en F6), embeddings para el matcher, soporte nativo de codex/gemini, subagentes internos de claude, `herdr agent rename` (descartado por el diseño).
+Motivo comun: cada uno agrega superficie sin resolver el dolor — el primer usuario que no es Diego.
 
-## Restricciones
+## Success signal
 
-- Cero dependencias nuevas; io inyectable como `placement.js`/`daemon.js`; tests con `node --test`.
-- **No toca auth, dinero, DB ni seguridad** → no requiere aprobación de Diego más allá del gate de build del orquestador.
-- Un solo writer al repo: cada story corre en su worktree/branch (`hermad plan-devs`, máx 3 devs). Los `files` de stories paralelas no se solapan.
-- Sin herdr disponible en tests: todo lo que toca herdr se testea con stubs.
+Guion unico, en un entorno limpio (contenedor Linux o VM Windows) con **un** vendor y `herdr`:
 
-## Riesgos que el plan tiene que respetar
+```
+npm i -g github:DdeDiegoA/hermad
+hermad setup          # 9 pasos guiados, sin editar JSON
+hermad create-project demo
+hermad start-team     # workspace + tabs + agentes
+```
 
-1. Carrera en `state.json` — mitigación: S1 primero (lock + rename atómico).
-2. Cerrar a destiempo un agente que recibió trabajo fuera del buzón — mitigación: DONE posterior a la última entrega + idle dos ticks; la regla del orquestador pasa a ser "siempre `hermad send`, nunca `agent prompt` a un worker".
-3. Daemon sin `workspaceId` (state viejo) cerrando agentes de otro proyecto — mitigación: `maybeClose` exige entrada en `state.agents` **y** coincidencia de `workspace_id`.
-4. Índice de skills stale (`description` editada en el lugar) — mitigación: TTL 24 h + `--refresh`.
-5. Alias que rompe consumidores (`personaOf`, buzón, rutas, briefing) — mitigación: un único módulo (`lib/agents.js`) y el buzón sigue siendo lógico.
-6. **Bug encontrado al verificar el handoff (2026-10-04, verificado en vivo):** `herdr.agentRead` hace `JSON.parse` sobre `herdr agent read`, que imprime texto plano → tira "respuesta no-JSON", el daemon lo traga y `state.screens` queda vacío → **`processMarkers` nunca corre**: rutas `HERMAD:DONE|BUG|STORIES_READY` y watchdog de compact muertos en vivo (los tests pasan porque el io del daemon está stubbeado). Va como AC de S2 (dueño de `lib/herdr.js`). Mientras no aterrice, el orquestador no puede confiar en los marcadores: tiene que leer `stories.yaml` y el buzón.
+Termina sin errores y **sin warnings de skills**. Se cierra con:
+`grep -rE "/Users/|Diego|opencode-go|deepseek|kimi" src templates command skill` = 0
+(linea base 2026-10-04: 14 archivos); TAB completa subcomandos y flags en zsh, bash, fish y PowerShell;
+`hermad update` funciona por npm global y por clone git; `npm run test` verde.
 
-## Handoff
-
-- `stories.yaml` en la raíz — schema `id / depends_on / files / ac`, listo para `hermad plan-devs` (máx 3 devs, sin solape de `files`).
-- Después de S7: `hermad plan-devs` → devs → `bmad-code-review` → merge del orquestador.
+Contra-metrica: el setup de Diego no se degrada — su flujo no cambia y la suite sigue verde.
