@@ -39,6 +39,23 @@ Método: `--help` + archivos de config reales + pruebas en vivo (marcadas ✔). 
 - **Fase 7 (orquestación)**: clarificación de tracks en claude; readers con `--setting-sources project,local` y sin Edit/Write.
 - **AGENTS-template**: hermes no lee `AGENTS.md` nativo → para hermes inyectar el slice vía `SOUL.md`/prompt (o equivalente a `CLAUDE.md`).
 
+## Skills: agente nuevo vs agente vivo (S7)
+
+`render` parte la allowlist (`frontmatter ∪ globales efectivas ∪ --skills`) en **nativa** (el vendor la ve)
+y **por ruta** (bloque `## Task skills — read these SKILL.md before starting` con rutas absolutas en el prompt).
+
+| Vendor | Agente nuevo (`spawn --skills`, globales) | Agente vivo (`send --skills`) |
+|---|---|---|
+| **claude** | symlink en el plugin del agente `.hermad/generated/claude/<agent>/skills/` (namespace `hermad-<agent>:`); `--setting-sources project,local` oculta las de usuario. Nativo para cualquier fuente, incluidas las de plugins. | **No recarga en caliente** → rutas `SKILL.md` en el mensaje, leídas con Read. |
+| **opencode** | `permission.skill` en `hermad-<agent>.md`. Nativo solo para las de sus roots (`~/.config/opencode/skills`, `.opencode/skills`, `.agents/skills`, `~/.claude/skills`). Las de un plugin de claude (`plugin:skill`) o de hermes van como rutas en el prompt. | Rutas en el mensaje (releer el agente md en caliente no está verificado). |
+| **hermes** | `--skills a,b` con las de sus roots (`~/.hermes/skills/**`, profiles); el resto va como rutas en el `promptText` inicial. | Rutas en el mensaje. |
+| **codex / gemini** | Fallback: rutas en el `promptText` inicial. | Rutas en el mensaje. |
+
+Regla única en el código: `render.nativeFor(kind, source)` decide el split (fuente de la skill tomada del
+`skillSource` que matchea `globalRoots`/`projectRoots`). `artifacts.skillsFound` = solo las nativas (lo que
+consume `--skills` de hermes); `artifacts.skillsByPath` = las que van al bloque de rutas. Los artefactos se
+keyean por `agentName`, así dos agentes de la misma persona con skills distintas no se pisan.
+
 ## Windows (nativo)
 
 herdr tiene soporte nativo en beta (docs `windows-beta.mdx`, v0.9.1): panes con `cmd.exe`/PowerShell vía ConPTY. Instalación: `powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"`.

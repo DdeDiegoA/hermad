@@ -15,9 +15,9 @@ function run(args) {
     const i = args.indexOf(flag);
     return i >= 0 ? args[i + 1] : null;
   };
-  const persona = args.find((a, i) => !a.startsWith("--") && !["--name", "--pane", "--kind", "--model"].includes(args[i - 1]));
+  const persona = args.find((a, i) => !a.startsWith("--") && !["--name", "--pane", "--kind", "--model", "--skills"].includes(args[i - 1]));
   if (!persona) {
-    console.error("Uso: hermad spawn <persona> [--name <agente>] [--pane <pane_id>] [--kind <vendor>] [--model <id>]");
+    console.error("Uso: hermad spawn <persona> [--name <agente>] [--pane <pane_id>] [--kind <vendor>] [--model <id>] [--skills a,b]");
     process.exit(1);
   }
   const project = resolveProject();
@@ -38,6 +38,8 @@ function run(args) {
     process.exit(1);
   }
   const model = opt("--model");
+  const skillsArg = opt("--skills");
+  const extraSkills = skillsArg ? skillsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const p = { ...base, kind, modelFlag: model ? vendors.modelFlagFor(kind, model) : base.modelFlag };
   const name = opt("--name") || (opt("--kind") || opt("--model") ? `${persona}-${kind}` : persona);
 
@@ -64,11 +66,11 @@ function run(args) {
     }
   }
 
-  const artifacts = render.renderPersona({ projectDir: project.projectDir, agentName: name, name: persona, persona: p, compactPct: project.compactPct || 50 });
+  const artifacts = render.renderPersona({ projectDir: project.projectDir, agentName: name, name: persona, persona: p, compactPct: project.compactPct || 50, extraSkills, project });
   const plan = vendors.startPlan(p.kind, persona, p, artifacts);
   // Único camino de arranque: agents.start resuelve el alias si `name` está tomado
   // en otro workspace y registra state.agents[name] (nombre lógico → vivo).
-  const live = agents.start({ project, logical: name, persona, kind: p.kind, paneId, args: plan.args, promptText: plan.promptText });
+  const live = agents.start({ project, logical: name, persona, kind: p.kind, paneId, args: plan.args, promptText: plan.promptText, skills: artifacts.skillsAllow });
   console.log(`[+] ${name} (${persona}, ${p.kind}) en ${paneId}${live !== name ? ` — vivo ${live}` : ""}`);
 }
 

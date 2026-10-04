@@ -37,6 +37,36 @@ function modelIdFrom(modelFlag) {
   return i >= 0 ? flags[i + 1] : null;
 }
 
+// Fuente de una skill resuelta, para decidir si el vendor la carga de forma nativa
+// (proyecto primero, igual que skills.resolve). "claude-plugin" = cache de plugins.
+function skillSource(dir, sourceDir) {
+  for (const r of [...skills.projectRoots(sourceDir), ...skills.globalRoots()]) {
+    if (dir === r.dir || dir.startsWith(r.dir + path.sep)) return r.source;
+  }
+  return "unknown";
+}
+
+// Qué fuentes ve cada vendor de forma nativa (matriz §6 de docs/vendors.md).
+// claude symlinkea CUALQUIER fuente en el plugin; hermes solo sus roots; opencode
+// las de sus roots (incl. ~/.claude/skills); codex/gemini ninguna.
+const NATIVE_SOURCES = {
+  opencode: new Set(["claude", "opencode", "agents", "project"]),
+  hermes: new Set(["hermes"]),
+};
+
+function nativeFor(kind, source) {
+  if (kind === "claude") return true;
+  const set = NATIVE_SOURCES[kind];
+  return set ? set.has(source) : false;
+}
+
+// Bloque que le dice al agente que lea esos SKILL.md con su herramienta: así una
+// skill de tarea sirve sin depender del tool Skill ni de recarga en caliente.
+function taskSkillsBlock(paths) {
+  if (!paths || !paths.length) return "";
+  return ["## Task skills — read these SKILL.md before starting", ...paths.map((p) => `- ${p}`)].join("\n");
+}
+
 // Claude Code's subagent launcher tool es `Agent` (versiones viejas: `Task`). En
 // hermad el trabajo se delega a un peer de otro vendor (más barato), no a un
 // subagente interno: se niega la tool en el settings de claude y se le dice al
@@ -51,14 +81,26 @@ const CLAUDE_DELEGATION_RULE = [
 
 // sourceDir = de dónde se lee la memoria (AGENTS.md + journal) y las skills. En
 // un worktree projectDir=wtDir (salida del agente) pero sourceDir=repo principal.
-function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50 }) {
+function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50, extraSkills = [], project, globs }) {
+  const agentKey = agentName || name;
   const p = prompts.loadPersona(name) || { skills: [], body: persona.rol || `You are the ${name} persona.` };
   const memBlock = memory.slice(sourceDir, { persona: name });
-  const baseBody = persona.kind === "claude" ? `${p.body}\n\n${CLAUDE_DELEGATION_RULE}` : p.body;
+
+  // Allowlist = frontmatter ∪ globales efectivas ∪ --skills (dedup). render es el
+  // único lugar donde se arma; el split nativo/por-ruta depende del vendor (kind).
+  const effectiveGlobals = globs || skills.effectiveGlobals(project || {});
+  const allow = [...new Set([...(p.skills || []), ...(persona.skills || []), ...effectiveGlobals, ...extraSkills].filter(Boolean))];
+  const { found, missing } = skills.resolveAll(allow, sourceDir);
+  const native = [];
+  const byPath = [];
+  for (const f of found) (nativeFor(persona.kind, skillSource(f.dir, sourceDir)) ? native : byPath).push(f);
+  const taskBlock = taskSkillsBlock(byPath.map((f) => path.join(f.dir, "SKILL.md")));
+  const kindBody = persona.kind === "claude" ? `${p.body}\n\n${CLAUDE_DELEGATION_RULE}` : p.body;
+  const baseBody = [kindBody, taskBlock].filter(Boolean).join("\n\n");
   // El prompt-por-archivo de claude/opencode NO lleva memoria: claude la recibe
   // por CLAUDE.md/@AGENTS.md + el hook, opencode por el AGENTS.md nativo. Solo el
   // fallback (hermes/codex/…) necesita el bloque atómico embebido.
-  const promptFile = path.join(projectDir, GEN_DIR, "prompts", `${name}.md`);
+  const promptFile = path.join(projectDir, GEN_DIR, "prompts", `${agentKey}.md`);
   write(promptFile, baseBody + "\n");
   const promptBody = [baseBody, memBlock].filter(Boolean).join("\n\n---\n\n");
 
@@ -77,21 +119,20 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   const journalBlock = memory.slice(sourceDir, { persona: name, includeAgents: !sameAgents });
   const opencodeBody = [baseBody, journalBlock].filter(Boolean).join("\n\n---\n\n");
 
-  const { found, missing } = skills.resolveAll(p.skills, sourceDir);
   for (const miss of missing) {
     if (warnedMissing.has(miss)) continue;
     warnedMissing.add(miss);
     console.log(`[!] skill '${miss}' no existe instalada — se omite (la allowlist no aborta)`);
   }
 
-  // claude: plugin por persona (skills allowlist + hook de memoria) + settings.
-  const pluginDir = path.join(projectDir, GEN_DIR, "claude", name);
+  // claude: plugin por agente (skills allowlist + hook de memoria) + settings.
+  const pluginDir = path.join(projectDir, GEN_DIR, "claude", agentKey);
   const pluginSkills = path.join(pluginDir, "skills");
   fs.rmSync(pluginSkills, { recursive: true, force: true });
   for (const { name: skillName, dir } of found) linkSkill(dir, path.join(pluginSkills, skillName));
   write(
     path.join(pluginDir, ".claude-plugin", "plugin.json"),
-    JSON.stringify({ name: `hermad-${name}`, version: "0.0.1", description: `Hermad persona ${name}`, skills: "./skills/", hooks: "./hooks/hooks.json" }, null, 2) + "\n"
+    JSON.stringify({ name: `hermad-${agentKey}`, version: "0.0.1", description: `Hermad persona ${name}`, skills: "./skills/", hooks: "./hooks/hooks.json" }, null, 2) + "\n"
   );
   write(
     path.join(pluginDir, "hooks", "hooks.json"),
@@ -104,7 +145,7 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   // skipDangerousModePermissionPrompt: sin esto claude muestra un diálogo de
   // confirmación del modo bypass al arrancar y el agente queda blocked.
   const settings = {
-    env: { CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: String(compactPct), HERMAD_AGENT: agentName || name },
+    env: { CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: String(compactPct), HERMAD_AGENT: agentKey },
     skipDangerousModePermissionPrompt: true,
   };
   // readonly: se niegan los writers directos; Bash de escritura queda documentado
@@ -115,14 +156,14 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   const deny = ["Agent", "Task", ...skills.listProjectClaude(projectDir, sourceDir).map((n) => `Skill(${n})`)];
   if (p.readonly) deny.push("Edit", "Write", "NotebookEdit", "Bash(sed -i:*)", "Bash(tee:*)", "Bash(dd:*)");
   settings.permissions = { deny };
-  const settingsFile = path.join(projectDir, GEN_DIR, "claude", `${name}.settings.json`);
+  const settingsFile = path.join(projectDir, GEN_DIR, "claude", `${agentKey}.settings.json`);
   write(settingsFile, JSON.stringify(settings, null, 2) + "\n");
 
   // opencode: agente md (prompt por archivo + permisos de skill + readonly).
-  const opencodeAgentName = `hermad-${name}`;
+  const opencodeAgentName = `hermad-${agentKey}`;
   const agentFile = path.join(projectDir, ".opencode", "agents", `${opencodeAgentName}.md`);
   const skillPerms = { "*": "deny" };
-  for (const { name: skillName } of found) skillPerms[skillName] = "allow";
+  for (const { name: skillName } of native) skillPerms[skillName] = "allow";
   const front = {
     description: `${name} — ${persona.rol || "hermad persona"}`,
     mode: "primary",
@@ -137,7 +178,11 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   return {
     promptFile,
     promptBody,
-    skillsFound: found.map((f) => f.name),
+    // skillsFound = lo que el vendor carga nativo (hermes --skills, plugin claude).
+    skillsFound: native.map((f) => f.name),
+    skillsNative: native.map((f) => f.name),
+    skillsByPath: byPath.map((f) => ({ name: f.name, dir: f.dir })),
+    skillsAllow: allow,
     skillsMissing: missing,
     claude: { pluginDir, settingsFile },
     opencode: { agentFile, agentName: opencodeAgentName },
@@ -186,4 +231,4 @@ function ensureGitignore(projectDir) {
   return true;
 }
 
-module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom };
+module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor };
