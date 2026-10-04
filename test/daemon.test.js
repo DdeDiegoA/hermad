@@ -230,6 +230,84 @@ test("un agente que falla no tumba el tick para los demás", () => {
   assert.ok(sent.some((m) => m.to === "dev" && /story=S2/.test(m.text)), "el reviewer se procesa igual");
 });
 
+test("loadState completa defaults (agents, closed) sobre un state viejo", () => {
+  const p = project();
+  fs.mkdirSync(path.join(p.projectDir, ".hermad"), { recursive: true });
+  fs.writeFileSync(path.join(p.projectDir, ".hermad", "state.json"), JSON.stringify({ rebounds: { S1: 1 } }));
+  const s = daemon.loadState(p.projectDir);
+  assert.deepEqual(s.rebounds, { S1: 1 });
+  for (const k of ["agents", "closed", "screens", "markers", "stories", "compact"]) {
+    assert.deepEqual(s[k], {}, `default ${k}`);
+  }
+});
+
+test("saveState escribe atómico: JSON completo y sin tmp suelto", () => {
+  const p = project();
+  daemon.saveState(p.projectDir, { ...daemon.loadState(p.projectDir), workspaceId: "w1" });
+  const dir = path.join(p.projectDir, ".hermad");
+  assert.equal(fs.readdirSync(dir).filter((f) => f.includes(".tmp-")).length, 0, "no queda tmp");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, "state.json"), "utf8")).workspaceId, "w1");
+});
+
+test("withStateLock reclama un lock stale de más de 10s", () => {
+  const p = project();
+  const lock = path.join(p.projectDir, ".hermad", "state.lock");
+  fs.mkdirSync(path.dirname(lock), { recursive: true });
+  fs.writeFileSync(lock, "viejo");
+  const old = (Date.now() - 11000) / 1000;
+  fs.utimesSync(lock, old, old);
+  assert.equal(daemon.withStateLock(p.projectDir, () => "ok"), "ok");
+  assert.equal(fs.existsSync(lock), false, "libera el lock al salir");
+});
+
+test("withStateLock respeta un lock fresco hasta el timeout", () => {
+  const p = project();
+  const lock = path.join(p.projectDir, ".hermad", "state.lock");
+  fs.mkdirSync(path.dirname(lock), { recursive: true });
+  fs.writeFileSync(lock, "fresco");
+  assert.throws(() => daemon.withStateLock(p.projectDir, () => "x", { timeoutMs: 120 }), /lock/);
+  assert.ok(fs.existsSync(lock), "no pisa el lock ajeno");
+});
+
+test("updateState no pisa una clave escrita entre el load y el save", () => {
+  const p = project();
+  const staleCopy = daemon.loadState(p.projectDir); // copia que el daemon leyó al arrancar
+  // writer CLI escribe agents mientras el daemon tenía su copia vieja
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { architect: { live: "architect" } };
+  });
+  assert.deepEqual(staleCopy.agents, {}, "la copia vieja no conocía la clave");
+  // el daemon aplica su parche con updateState (lectura fresca), no con su copia
+  daemon.updateState(p.projectDir, (s) => {
+    s.screens = { architect: "hash" };
+  });
+  const final = daemon.loadState(p.projectDir);
+  assert.ok(final.agents.architect, "la clave del CLI sobrevive al save del daemon");
+  assert.equal(final.screens.architect, "hash");
+});
+
+test("una escritura del CLI durante el tick no se pierde", () => {
+  const p = project({ personas: { dev: { kind: "claude" } }, routes: [] });
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev", text: "haz S1" });
+  let injected = false;
+  const io = {
+    agentList: () => [{ name: "dev", agent_status: "idle" }],
+    agentRead: () => "",
+    agentPrompt: () => {
+      if (injected) return;
+      injected = true;
+      // CLI concurrente: toma su propio lock y escribe agents a mitad del tick.
+      daemon.updateState(p.projectDir, (s) => {
+        s.agents = { architect: { live: "architect" } };
+      });
+    },
+    send: () => {},
+    log: () => {},
+  };
+  daemon.runOnce(p, io);
+  assert.ok(daemon.loadState(p.projectDir).agents.architect, "el save final del daemon no la pisa");
+});
+
 test("runOnce ignora agentes de otro workspace cuando el state conoce el suyo", () => {
   const p = project();
   daemon.saveState(p.projectDir, { ...daemon.loadState(p.projectDir), workspaceId: "w1" });

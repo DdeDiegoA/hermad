@@ -22,15 +22,24 @@ const MAX_REBOUNDS = 3;
 // puede seguir mostrando el % viejo un rato después de compactar).
 const COMPACT_COOLDOWN_MS = 120000;
 
+// Lock de escritura sobre state.json. El CLI y el daemon son procesos distintos:
+// sin lock, el load→save del daemon pisa lo que el CLI escriba en el medio.
+const LOCK_RETRY_MS = 50;
+const LOCK_TIMEOUT_MS = 2000;
+const LOCK_STALE_MS = 10000;
+
 function inboxRoot(projectDir) {
   return path.join(projectDir, ".hermad", "inbox");
 }
 function statePath(projectDir) {
   return path.join(projectDir, ".hermad", "state.json");
 }
+function lockPath(projectDir) {
+  return path.join(projectDir, ".hermad", "state.lock");
+}
 
 function emptyState() {
-  return { rebounds: {}, screens: {}, markers: {}, compact: {}, stories: {} };
+  return { rebounds: {}, screens: {}, markers: {}, compact: {}, stories: {}, agents: {}, closed: {} };
 }
 function loadState(projectDir) {
   const file = statePath(projectDir);
@@ -43,9 +52,90 @@ function loadState(projectDir) {
     return emptyState();
   }
 }
+// tmp + rename en el mismo dir: el rename es atómico, el JSON nunca queda a medias.
 function saveState(projectDir, state) {
-  fs.mkdirSync(path.dirname(statePath(projectDir)), { recursive: true });
-  fs.writeFileSync(statePath(projectDir), JSON.stringify(state, null, 2) + "\n");
+  const file = statePath(projectDir);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.tmp-${process.pid}`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(state, null, 2) + "\n");
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* tmp ya no está */
+    }
+    throw err;
+  }
+}
+
+// Dormir sincrónico: el lock se toma en el hilo principal, un timer no serviría.
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+// Lockfile con O_EXCL. Reintenta cada retryMs hasta timeoutMs; un lock con mtime
+// más viejo que staleMs se considera abandonado (proceso muerto) y se reclama.
+function withStateLock(projectDir, fn, opts = {}) {
+  const retryMs = opts.retryMs || LOCK_RETRY_MS;
+  const timeoutMs = opts.timeoutMs || LOCK_TIMEOUT_MS;
+  const staleMs = opts.staleMs || LOCK_STALE_MS;
+  const file = lockPath(projectDir);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const deadline = Date.now() + timeoutMs;
+  let fd;
+  for (;;) {
+    try {
+      fd = fs.openSync(file, "wx");
+      break;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+      let mtime = 0;
+      try {
+        mtime = fs.statSync(file).mtimeMs;
+      } catch {
+        mtime = 0; // desapareció entre el open y el stat → reintentar ya
+      }
+      if (Date.now() - mtime > staleMs) {
+        // ponytail: robo optimista del lock stale (sin verificar dueño); alcanza
+        // porque los críticos duran ms, no segundos.
+        try {
+          fs.unlinkSync(file);
+        } catch {
+          /* otro lo liberó */
+        }
+        continue;
+      }
+      if (Date.now() >= deadline) throw new Error(`state lock ocupado: ${file}`);
+      sleepSync(retryMs);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      fs.closeSync(fd);
+    } catch {
+      /* ya cerrado */
+    }
+    try {
+      fs.unlinkSync(file);
+    } catch {
+      /* ya liberado */
+    }
+  }
+}
+
+// Única API de escritura para los nuevos writers: lock → load fresco → mutator →
+// save atómico → unlock. El mutator muta el estado in-place.
+function updateState(projectDir, mutator) {
+  return withStateLock(projectDir, () => {
+    const state = loadState(projectDir);
+    const result = mutator(state);
+    saveState(projectDir, state);
+    return result;
+  });
 }
 
 // Escribe un mensaje al buzón del peer + copia al journal.
@@ -271,7 +361,20 @@ function runOnce(project, io) {
     }
   }
 
-  saveState(project.projectDir, state);
+  // Las llamadas lentas a herdr ya pasaron: ahora, bajo lock, tomamos una
+  // lectura fresca y aplicamos SOLO las claves que el daemon posee, para no
+  // pisar lo que el CLI (workspaceId, agents, stories) escribió durante el tick.
+  updateState(project.projectDir, (fresh) => {
+    fresh.screens = state.screens;
+    fresh.markers = state.markers;
+    fresh.rebounds = state.rebounds;
+    fresh.compact = state.compact;
+    fresh.closed = state.closed;
+    // stories es del CLI; el daemon solo propaga el `done` que ya marcó.
+    for (const [id, s] of Object.entries(state.stories || {})) {
+      if (s && s.status === "done" && fresh.stories && fresh.stories[id]) fresh.stories[id].status = "done";
+    }
+  });
   return acted;
 }
 
@@ -314,4 +417,4 @@ function loop(project, { intervalMs = 5000 } = {}) {
   setInterval(tick, intervalMs);
 }
 
-module.exports = { send, runOnce, loop, parseMarkers, applyRoute, loadState, saveState, NATIVE_COMPACT, DEFAULT_ROUTES, MAX_REBOUNDS };
+module.exports = { send, runOnce, loop, parseMarkers, applyRoute, loadState, saveState, updateState, withStateLock, NATIVE_COMPACT, DEFAULT_ROUTES, MAX_REBOUNDS };
