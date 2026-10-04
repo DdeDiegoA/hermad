@@ -62,6 +62,7 @@
   - S6: bug de data loss (config.save borraba globalSkills) → fix doble: `config.save` mergea con disco + settings-agents guarda cfg completo.
   - BUG vivo (orquestador): el daemon toma marcadores citados dentro de instrucciones pegadas (cerró S6 y mandó un BUG falso a dev-3; revertido). Fix en S3b (línea completa). Regla: NO citar `HERMAD:<EVENTO> story=…` literal en mensajes a agentes.
   - Dedupe de marcadores por texto exacto: tras un fix, el dev debe emitir `n=2` (si repite `n=1` la ruta no se dispara); y redibujos de pantalla a veces duplican el mismo `n=1`. Revisar en S3b.
+  - RUTAS PAUSADAS (`routes` = ruta dummy `PAUSED` en `.hermad/project.json`): el dedupe por conteo re-disparaba DONE cada 5s y cerró S6 en falso 2 veces. Handoffs a mano. **Restaurar `routes` (borrar la clave) al mergear S3b.**
   - Pendientes menores: `hermad send` acepta destinos con espacios (validar nombre); el reenvío por ruta firma `from: dev` en vez de `dev-N` (corregir en S3b con logicalOf).
   - BUG vivo (pm, verificado): `herdr.agentRead` hace JSON.parse sobre texto plano → el daemon nunca procesa marcadores; rutas y watchdog muertos en vivo. Fix en S2. Hasta entonces, handoffs a mano.
   - `reader` agregado a `producto` en `.hermad/project.json` (el spawn fallaba: bug #3 en vivo).
