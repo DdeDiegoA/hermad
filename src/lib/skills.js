@@ -30,12 +30,27 @@ function globalRoots() {
       for (const plugin of safeReaddir(mpDir)) {
         const plDir = path.join(mpDir, plugin);
         for (const version of safeReaddir(plDir)) {
-          roots.push({ dir: path.join(plDir, version, "skills"), plugin, source: "claude-plugin" });
+          // claude namespacea con el `name` del manifest, no con la carpeta:
+          // si difieren (o la carpeta cambia en una versión), el id del índice
+          // tiene que ser el del manifest para que resuelva contra globalSkills.
+          const ns = pluginNamespace(plDir, version) || plugin;
+          roots.push({ dir: path.join(plDir, version, "skills"), plugin: ns, source: "claude-plugin" });
         }
       }
     }
   }
   return roots;
+}
+
+// `name` de <plugin>/<version>/.claude-plugin/plugin.json (namespace real de
+// claude). Sin manifest → null y se usa el nombre de la carpeta.
+function pluginNamespace(plDir, version) {
+  try {
+    const name = JSON.parse(fs.readFileSync(path.join(plDir, version, ".claude-plugin", "plugin.json"), "utf8")).name;
+    return typeof name === "string" && name.trim() ? name.trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 function projectRoots(projectDir) {

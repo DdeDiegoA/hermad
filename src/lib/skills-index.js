@@ -84,6 +84,22 @@ function tokenize(s) {
     .filter((t) => t && !STOPWORDS.has(t));
 }
 
+// Stemmer inglés mínimo (sin deps): saca plural/gerundio/participio y la
+// consonante doble que deja el sufijo (debugging → debug), así `debug` matchea
+// `systematic-debugging`. Heurístico a propósito: BM25-lite y el LLM filtra.
+const SUFFIXES = ["ingly", "edly", "ing", "ies", "ied", "ed", "ly", "es", "s"];
+function stem(w) {
+  let s = w;
+  for (const suf of SUFFIXES) {
+    if (s.length - suf.length >= 3 && s.endsWith(suf)) {
+      s = s.slice(0, -suf.length);
+      break;
+    }
+  }
+  if (s.length >= 4 && s[s.length - 1] === s[s.length - 2]) s = s.slice(0, -1);
+  return s;
+}
+
 // match: ranking BM25-lite. Peso name ×3, description ×1. Boost +2 si la skill
 // está en el frontmatter de la persona. Excluye las globales efectivas (ya van).
 function match(task, { persona, top = 15, projectDir, list, globals, personaSkills } = {}) {
@@ -95,8 +111,8 @@ function match(task, { persona, top = 15, projectDir, list, globals, personaSkil
   }
   const boost = personaSkills || (persona ? (prompts.loadPersona(persona) || {}).skills : []) || [];
 
-  const qTokens = [...new Set(tokenize(task))];
-  const fields = docs.map((d) => ({ d, name: tokenize(d.name), desc: tokenize(d.description || "") }));
+  const qTokens = [...new Set(tokenize(task).map(stem))];
+  const fields = docs.map((d) => ({ d, name: tokenize(d.name).map(stem), desc: tokenize(d.description || "").map(stem) }));
   const N = fields.length || 1;
   const avgdl = fields.reduce((a, f) => a + f.name.length * 3 + f.desc.length, 0) / N || 1;
   const k1 = 1.2;
