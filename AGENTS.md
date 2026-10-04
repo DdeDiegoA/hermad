@@ -77,7 +77,11 @@
   - architect DONE → `docs/hermad-para-todos-design.md`: commands-table (HELP/dispatch/completion), pack.js, discovery.js, wizard/ui.js, install-method.js, bmad.js, i18n. 8 stories en 3 olas: CLI-TABLE · CONFIG-PERMS⚠️ · DEBTS → COMPLETION · PROMPTS · WIZARD-CORE → SETUP · UPDATE-BMAD.
   - GATE SEGURIDAD APROBADO por Diego (2026-10-04): default `prompt`; D1 aceptación = select + confirm (default No en ambos); D2+D3 el texto de riesgo menciona inyección de instrucciones y el costo (agentes blocked hasta atender el panel); D4 legacy sin `permissions` → bypass + aviso; D5 override por proyecto solo con `settings permissions --project`; D6 `--yes` nunca implica bypass (`--accept-bypass`). Las stories GATE-SEGURIDAD igual pasan por revisión de Diego antes del merge.
   - ux DONE → `docs/hermad-para-todos-ux.md` (9 pasos es/en, update, errores, tabla --yes).
-  - pm (skills de tarea: bmad-spec, bmad-artifact-authoring) → SPEC.md + stories.yaml en curso. Siguiente: gate de build.
+  - pm DONE → SPEC.md + stories.yaml (8 stories HPT-*, 77 AC, 3 olas). Gate de build: Diego lo dio vía /goal (entregar todo funcional, PRs en gh, workflows verdes). Repo ya es PUBLIC.
+  - Flujo de entrega: cada dev push + `gh pr create`; reviewer revisa la PR; orquestador mergea con `gh pr merge` solo con CI verde + OK del reviewer.
+  - CI de main estaba en rojo → story previa HPT-CI (dev-4, skills github-pr-workflow + systematic-debugging) arregla y agrega `npm ci` al workflow.
+  - Ola 1 lanzada: dev-1=HPT-CLI-TABLE, dev-2=HPT-CONFIG-PERMS⚠️ (skill cso), dev-3=HPT-DEBTS (systematic-debugging).
+  - BUG vivo: un agente con nombre fuera del patrón `dev-N` (p. ej. `dev-ci`) nunca recibe su buzón, aunque esté idle y fuera de `closed`. Workaround: usar `dev-N`. Además el daemon re-escribe `state.closed` al final del tick y pisa ediciones externas.
 
 ## Reglas del equipo
 
