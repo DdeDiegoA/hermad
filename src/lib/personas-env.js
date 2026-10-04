@@ -5,9 +5,13 @@
 const DEFAULT_DEPARTAMENTOS = [
   ["producto", ["reader", "architect", "pm", "analyst"]],
   ["desarrollo", ["dev"]],
-  ["qa", ["reviewer"]],
+  ["qa", ["reviewer", "security"]],
   ["diseno", ["ux"]],
 ];
+
+// Personas que NO arrancan con el equipo (start-team/orchestrate/open-orchestrator):
+// solo por decisión explícita del usuario vía `hermad spawn security`.
+const ON_DEMAND = new Set(["security"]);
 
 // Genera el personas.env que consume skill/scripts/orquestar.sh a partir del
 // config.personas (fuente: ~/.hermad/config.json) — mismo formato que consumía el
@@ -38,4 +42,4 @@ function render({ projectDir, label, personas, departamentos = DEFAULT_DEPARTAME
   return lines.join("\n");
 }
 
-module.exports = { render, DEFAULT_DEPARTAMENTOS };
+module.exports = { render, DEFAULT_DEPARTAMENTOS, ON_DEMAND };

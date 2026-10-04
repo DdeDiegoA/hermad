@@ -136,6 +136,7 @@ function startPlan(kind, personaName, persona, artifacts) {
           "--plugin-dir", artifacts.claude.pluginDir,
           "--append-system-prompt-file", artifacts.promptFile,
           "--settings", artifacts.claude.settingsFile,
+          ...(artifacts.claude.mcpFile ? ["--mcp-config", artifacts.claude.mcpFile] : []),
         ],
         promptText: null,
       };

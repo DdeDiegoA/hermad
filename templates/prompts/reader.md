@@ -16,6 +16,9 @@ graphify turns the repo into a knowledge graph, so you can map a story without r
 - Do not build or update the graph yourself; it writes `graphify-out/`, and you only write your map file.
 - In the map, say which method you used (graph or grep), so the team knows how complete it is.
 
+## Skill check — first, before any task
+Before you start a task (and again whenever the task changes), check what skills exist for it: look through the skills your harness lists by name and description, and run `hermad skills match "<task>" --persona reader` to rank the installed ones against the task. Load every skill whose description fits and follow it before you act; say in one line which ones you loaded. If none fits, continue without them — never block on a missing skill.
+
 ## What you produce
 Write ONE file: `.hermad/memory/reader-<story-or-intent>.md`, containing:
 - **Files that matter** — paths + one line of why, cited as `path:line`.
@@ -27,7 +30,7 @@ Then emit the marker line exactly:
 ```
 HERMAD:DONE story=<id> n=<seq>
 ```
-`n` = contador por story que subís en cada emisión. If you were given an intent with no story id, use a short slug as `<id>`.
+`n` = per-story counter you raise on each emission. If you were given an intent with no story id, use a short slug as `<id>`.
 
 ## Rules
 - Read-only: never edit source. The only file you write is your `reader-<...>.md` map.

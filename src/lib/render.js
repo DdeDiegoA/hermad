@@ -12,6 +12,11 @@ const config = require("./config");
 const GEN_DIR = path.join(".hermad", "generated");
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const warnedMissing = new Set();
+function warnOnce(key, msg) {
+  if (warnedMissing.has(key)) return;
+  warnedMissing.add(key);
+  console.log(msg);
+}
 const warnedLegacy = { done: false };
 
 // Modo de permisos: override del proyecto (project.json → permissions, string u
@@ -245,6 +250,26 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
   const settingsFile = path.join(projectDir, GEN_DIR, "claude", `${agentKey}.settings.json`);
   write(settingsFile, JSON.stringify(settings, null, 2) + "\n");
 
+  // MCP por persona: el frontmatter `mcp:` nombra servidores definidos en
+  // ~/.hermad/config.json (`mcpServers`). Solo claude los acota por proceso
+  // (--mcp-config); en opencode/hermes los MCP son globales → se avisa una vez.
+  let mcpFile = null;
+  const wantedMcp = (p.mcp || []).filter(Boolean);
+  if (wantedMcp.length) {
+    const defs = cfg2.mcpServers || {};
+    const picked = {};
+    for (const n of wantedMcp) {
+      if (defs[n]) picked[n] = defs[n];
+      else warnOnce(`mcp:${n}`, `[!] mcp '${n}' (persona ${name}) no está en mcpServers de ~/.hermad/config.json — se omite`);
+    }
+    if (persona.kind === "claude" && Object.keys(picked).length) {
+      mcpFile = path.join(projectDir, GEN_DIR, "claude", `${agentKey}.mcp.json`);
+      write(mcpFile, JSON.stringify({ mcpServers: picked }, null, 2) + "\n");
+    } else if (persona.kind !== "claude") {
+      warnOnce(`mcp-kind:${name}:${persona.kind}`, `[!] ${name} pide MCP (${wantedMcp.join(", ")}) pero ${persona.kind} no los acota por persona — configuralos en ${persona.kind} o usá --kind claude`);
+    }
+  }
+
   // opencode: agente md (prompt por archivo + permisos de skill + readonly).
   const opencodeAgentName = `hermad-${agentKey}`;
   const agentFile = path.join(projectDir, ".opencode", "agents", `${opencodeAgentName}.md`);
@@ -271,7 +296,7 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
     skillsByPath: byPath.map((f) => ({ name: f.name, dir: f.dir })),
     skillsAllow: allow,
     skillsMissing: missing,
-    claude: { pluginDir, settingsFile },
+    claude: { pluginDir, settingsFile, mcpFile },
     opencode: { agentFile, agentName: opencodeAgentName },
   };
 }

@@ -33,7 +33,7 @@ function makeSkill(dir, name) {
 test("loadPersona separa skills requeridas de optionalSkills", () => {
   const dev = prompts.loadPersona("dev");
   assert.deepEqual(dev.skills, [], "las BMad no son requeridas (arranca sin BMad)");
-  assert.deepEqual(dev.optionalSkills, ["bmad-agent-dev", "bmad-build"]);
+  assert.deepEqual(dev.optionalSkills, ["bmad-agent-dev", "bmad-build", "impeccable", "ui-ux-pro-max", "google-design-md", "animate", "improve-animations", "ask-sonner", "pick-ui-library", "baseline-ui", "fixing-accessibility", "fixing-motion-performance", "fixing-metadata", "context7-mcp", "find-docs", "fix-security-vulnerabilities-with-strix", "mobile-native", "animate-expo", "write-swift", "context7-cli", "ci-security-scanning-with-strix", "ui-styling"]);
   assert.deepEqual(prompts.loadPersona("reader").optionalSkills, []);
 });
 

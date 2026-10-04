@@ -43,6 +43,7 @@ function loadPersona(name) {
     name: meta.name || name,
     skills: meta.skills || [],
     optionalSkills: meta.optionalSkills || [],
+    mcp: meta.mcp || [],
     readonly: !!meta.readonly,
     body,
   };

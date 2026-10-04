@@ -197,3 +197,9 @@ test("paneForAgent sin departamentos posibles devuelve null (no contamina el tab
 test("paneForAgent sin workspace devuelve null", () => {
   assert.equal(paneForAgent(PROJECT, "dev", { tabList: () => [] }), null);
 });
+
+test("security (on-demand): cae en qa por default y no arranca con el equipo", () => {
+  const personasEnv = require("../src/lib/personas-env");
+  assert.ok(personasEnv.ON_DEMAND.has("security"));
+  assert.equal(departmentFor({}, "security"), "qa");
+});

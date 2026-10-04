@@ -20,6 +20,7 @@ const DEFAULT_PERSONAS = {
   reviewer: { kind: "", modelFlag: "", rol: "Revisor — code review/QA" },
   ux: { kind: "", modelFlag: "", rol: "Sally — UX" },
   reader: { kind: "", modelFlag: "", rol: "Reader — mapa read-only del código (descartable)" },
+  security: { kind: "", modelFlag: "", rol: "Security — pentest activo con Strix (solo por orden del usuario)" },
 };
 
 const LEGACY_BYPASS_WARNING =

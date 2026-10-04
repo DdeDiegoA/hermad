@@ -1,5 +1,6 @@
 "use strict";
 const herdr = require("./herdr");
+const personasEnv = require("./personas-env");
 const prompts = require("./prompts");
 const vendors = require("./vendors");
 const render = require("./render");
@@ -62,7 +63,10 @@ function bootstrap({ projectDir, name, label, personas, departamentos, intent, o
   console.log(`[+] orquestador (${orquestador.kind}) on ${rootPaneId} — ${orquestador.rol}${orqLive !== "orquestador" ? ` (vivo ${orqLive})` : ""}`);
 
   const workers = [];
-  for (const [tabLabel, names] of onlyOrchestrator ? [] : departamentos) {
+  for (const [tabLabel, allNames] of onlyOrchestrator ? [] : departamentos) {
+    // Personas on-demand (p.ej. security) nunca arrancan con el equipo: solo por `hermad spawn`.
+    const names = allNames.filter((n) => !personasEnv.ON_DEMAND.has(n));
+    if (!names.length) continue;
     if (tabLabel === placement.MANAGEMENT_TAB) {
       console.log(`[!] '${tabLabel}' es el tab del orquestador, no de workers — ignoro esa entrada de departamentos`);
       continue;
