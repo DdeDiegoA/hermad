@@ -62,10 +62,10 @@
   - Pendientes post-épica: auto-close cierra a un agente lanzado con `spawn` (no `plan-devs`) apenas emite DONE, aunque el reviewer aún no aprobó — la guarda de story solo mira `state.stories` (pasó con CORE-ORQ); `normalizePersona` corta en el primer `-`; aviso de ruta escueto (agregar branch/commit); `hermad send` acepta destinos con espacios; aviso `gerencia` repetido; agentes lanzados antes de S3b no están en `state.agents` (no se auto-cierran); Diego debe correr `hermad skills suggest --global`; aceptación en vivo de `open-orchestrator` con colisión de nombre.
 
 - 2026-10-04 — Configuración de skills (Diego):
-  - `globalSkills` (`~/.hermad/config.json`): `caveman:caveman`, `ponytail:ponytail`, `herdr-bmad`, `andrej-karpathy-skills:karpathy-guidelines`, `graphify`, `bmad-help`. Se cargan en todos los agentes; las no nativas del vendor (p. ej. plugins de claude en opencode/hermes) van por ruta SKILL.md — aceptado el costo de contexto.
+  - `globalSkills` (`~/.hermad/config.json`): `caveman:caveman`, `ponytail:ponytail`, `herdr-bmad`, `andrej-karpathy-skills:karpathy-guidelines`, `graphify` (+ `bmad-help` por proyecto). Se cargan en todos los agentes; las no nativas del vendor (p. ej. plugins de claude en opencode/hermes) van por ruta SKILL.md — aceptado el costo de contexto.
   - Frontmatter de personas: sin `herdr-bmad`, `rag-pipeline` ni `graphify` (SKILLS-CFG mergeada 79b62f2; reader `skills: []`).
   - SKILLS-KARPATHY mergeada: el "drop de karpathy" fue falsa alarma (script de review con lista hardcodeada); quedó hardening (namespace por manifest) + stemming en `skills match`. 6/6 globales verificadas en los 4 vendors.
-  - OJO: `bmad-help` es project-scoped (`.claude/skills/` de este repo, untracked) → en otros proyectos no resuelve.
+  - `bmad-help` movida de global a proyecto (`project.json` → `skills.add`), porque es project-scoped: globales = 5 (caveman, ponytail, herdr-bmad, karpathy-guidelines, graphify); en proyectos con BMad agregar `hermad skills global add bmad-help --project`.
   - Skills por tarea: el orquestador corre `hermad skills match` antes de CADA delegación y pasa todas las relevantes con `--skills` (sin tope), y las reporta.
 
 ## Reglas del equipo
