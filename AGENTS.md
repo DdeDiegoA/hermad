@@ -59,7 +59,7 @@
   - (3)(4) `placement` garantiza tab de departamento (default por persona, `dev-N`→desarrollo; si el move falla cierra el pane y aborta); tab default → `gerencia` (en workspaces nuevos).
   - (5) `hermad skills list|match|suggest [--global]|global add|rm` (índice cacheado en `~/.hermad/cache`, BM25 local); `globalSkills` en `~/.hermad/config.json` (+ `skills.add/remove` por proyecto); `spawn/send --skills` cargan por vendor, lo no nativo va como rutas SKILL.md.
   - Fixes en vivo: `herdr.agentRead` parseaba JSON sobre texto (rutas nunca funcionaron); marcadores ahora solo por línea exacta + dedupe por identidad `evento|story|n` (re-emitir = `n` nuevo); `project.hydrate` descartaba `routes`/`autoClose`/`skills`; `config.save` mergea con disco (no borra `globalSkills`).
-  - Pendientes post-épica: `normalizePersona` corta en el primer `-`; aviso de ruta escueto (agregar branch/commit); `hermad send` acepta destinos con espacios; aviso `gerencia` repetido; agentes lanzados antes de S3b no están en `state.agents` (no se auto-cierran); Diego debe correr `hermad skills suggest --global`; aceptación en vivo de `open-orchestrator` con colisión de nombre.
+  - Pendientes post-épica: auto-close cierra a un agente lanzado con `spawn` (no `plan-devs`) apenas emite DONE, aunque el reviewer aún no aprobó — la guarda de story solo mira `state.stories` (pasó con CORE-ORQ); `normalizePersona` corta en el primer `-`; aviso de ruta escueto (agregar branch/commit); `hermad send` acepta destinos con espacios; aviso `gerencia` repetido; agentes lanzados antes de S3b no están en `state.agents` (no se auto-cierran); Diego debe correr `hermad skills suggest --global`; aceptación en vivo de `open-orchestrator` con colisión de nombre.
 
 ## Reglas del equipo
 
