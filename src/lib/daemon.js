@@ -262,37 +262,29 @@ function personaOf(agentName, personas) {
   return personas[base] ? base : null;
 }
 
-// Procesa los marcadores NUEVOS. Guardamos el MÁXIMO histórico por texto de
-// marcador: si uno sale de la vista y la TUI lo vuelve a dibujar (scroll/resize),
-// el conteo no baja, así que no se re-dispara. Los eventos legítimos repetidos no
-// comparten texto porque los templates agregan `n=<seq>` por story.
+// Dedupe por IDENTIDAD, no por conteo: la clave es evento+story+n y se persiste
+// como vista para siempre. Un conteo re-disparaba la ruta cada tick si la línea
+// aparecía dos veces en pantalla o el agente la citaba después; con identidad,
+// la única forma de re-emitir es un `n` nuevo (n=2, n=3…). Keys numéricas viejas
+// (formato conteo) quedan como basura inofensiva: no matchean las claves nuevas.
 const MARKERS_MAX = 1000;
 function processMarkers(project, agentName, personaKey, text, state, io) {
-  const counts = {};
-  const byKey = new Map();
-  for (const mk of parseMarkers(text)) {
-    counts[mk.raw] = (counts[mk.raw] || 0) + 1;
-    byKey.set(mk.raw, mk);
-  }
-  const next = { ...(state.markers[agentName] || {}) };
+  const seen = state.markers[agentName] || {};
   let acted = 0;
-  for (const [key, count] of Object.entries(counts)) {
-    const seen = next[key] || 0;
-    if (count <= seen) continue;
-    const mk = byKey.get(key);
-    for (let i = 0; i < count - seen; i++) {
-      applyRoute(project, { fromPersona: personaKey, fromAgent: agentName, event: mk.event, story: mk.story, extra: mk.extra }, state, io);
-      acted++;
-    }
-    next[key] = count;
+  for (const mk of parseMarkers(text)) {
+    const key = `${mk.event}|${mk.story}|${mk.extra.n}`;
+    if (seen[key]) continue;
+    seen[key] = true;
+    applyRoute(project, { fromPersona: personaKey, fromAgent: agentName, event: mk.event, story: mk.story, extra: mk.extra }, state, io);
+    acted++;
   }
-  const keys = Object.keys(next);
+  const keys = Object.keys(seen);
   if (keys.length > MARKERS_MAX) {
     const keep = {};
-    for (const k of keys.slice(-MARKERS_MAX)) keep[k] = next[k];
+    for (const k of keys.slice(-MARKERS_MAX)) keep[k] = seen[k];
     state.markers[agentName] = keep;
   } else {
-    state.markers[agentName] = next;
+    state.markers[agentName] = seen;
   }
   return acted;
 }

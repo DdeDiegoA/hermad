@@ -111,7 +111,7 @@ test("un marcador que la TUI vuelve a dibujar no se dispara de nuevo", () => {
   assert.equal(sent.filter((m) => m.to === "reviewer").length, 1, "el redibujo no re-dispara");
 });
 
-test("un 2.º BUG legítimo se distingue con el contador n=", () => {
+test("un 2.º BUG legítimo se distingue con un n nuevo", () => {
   const p = project();
   const screens = ["HERMAD:BUG story=S1 n=1", "arreglando", "HERMAD:BUG story=S1 n=2"];
   let i = 0;
@@ -126,6 +126,47 @@ test("un 2.º BUG legítimo se distingue con el contador n=", () => {
   daemon.runOnce(p, io);
   daemon.runOnce(p, io);
   assert.equal(daemon.loadState(p.projectDir).rebounds.S1, 2);
+});
+
+// Regresión en vivo: el dedupe por conteo disparaba la ruta cada vez que la misma
+// línea aparecía más veces en pantalla (cita en un mensaje posterior, redibujo).
+const screenIo = (screens) => {
+  let i = 0;
+  const sent = [];
+  return {
+    sent,
+    io: {
+      agentList: () => [{ name: "dev", agent_status: "idle" }],
+      agentRead: () => screens[Math.min(i++, screens.length - 1)],
+      agentPrompt: () => {},
+      send: (m) => sent.push(m),
+      log: () => {},
+    },
+  };
+};
+
+test("el mismo marcador dos veces en pantalla dispara una sola vez", () => {
+  const p = project({ routes: [{ on: "DONE", from: "dev", to: "reviewer" }] });
+  const screens = [
+    "HERMAD:DONE story=S1 n=1\nHERMAD:DONE story=S1 n=1",
+    "HERMAD:DONE story=S1 n=1\nnota nueva",
+    "HERMAD:DONE story=S1 n=1",
+  ];
+  const { io, sent } = screenIo(screens);
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(sent.filter((m) => m.to === "reviewer").length, 1, "la identidad DONE|S1|1 ya está vista");
+});
+
+test("re-emitir con n=2 sí dispara de nuevo", () => {
+  const p = project({ routes: [{ on: "DONE", from: "dev", to: "reviewer" }] });
+  const screens = ["HERMAD:DONE story=S1 n=1", "HERMAD:DONE story=S1 n=1", "HERMAD:DONE story=S1 n=2"];
+  const { io, sent } = screenIo(screens);
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(sent.filter((m) => m.to === "reviewer").length, 2, "n nuevo = evento nuevo");
 });
 
 test("un BUG reenviado por el daemon (eco) no cuenta como rebote", () => {
