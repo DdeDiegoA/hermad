@@ -1,7 +1,9 @@
 "use strict";
 
+// Fuente única de los departamentos cuando el proyecto no trae los suyos.
+// `reader` cae en producto (antes no estaba en ninguno → sin tab).
 const DEFAULT_DEPARTAMENTOS = [
-  ["producto", ["architect", "pm", "analyst"]],
+  ["producto", ["reader", "architect", "pm", "analyst"]],
   ["desarrollo", ["dev"]],
   ["qa", ["reviewer"]],
   ["diseno", ["ux"]],

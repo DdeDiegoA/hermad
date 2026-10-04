@@ -9,8 +9,33 @@ test("departmentFor ubica la persona en el tab de su departamento", () => {
   assert.equal(departmentFor(PROJECT, "pm"), "producto");
   assert.equal(departmentFor(PROJECT, "dev"), "desarrollo");
   assert.equal(departmentFor(PROJECT, "reviewer"), "qa");
-  assert.equal(departmentFor(PROJECT, "reader"), null, "sin departamento → junto al daemon");
-  assert.equal(departmentFor({}, "dev"), null, "proyecto sin departamentos");
+});
+
+test("departmentFor normaliza el agente a la persona base (dev-3 → dev)", () => {
+  assert.equal(departmentFor(PROJECT, "dev-3"), "desarrollo");
+  assert.equal(departmentFor({}, "dev-2"), "desarrollo");
+  assert.equal(departmentFor(PROJECT, "reviewer-opencode"), "qa");
+});
+
+test("departmentFor cae en DEFAULT_DEPARTAMENTOS: reader → producto", () => {
+  assert.equal(departmentFor(PROJECT, "reader"), "producto", "reader no está en el proyecto → default");
+  assert.equal(departmentFor({}, "reader"), "producto");
+  assert.equal(departmentFor({}, "dev"), "desarrollo", "proyecto sin departamentos usa defaults");
+  assert.equal(departmentFor({}, "ux"), "diseno");
+});
+
+test("departmentFor avisa e ignora la etiqueta gerencia", () => {
+  const logs = [];
+  const p = { departamentos: [["gerencia", ["dev"]], ["desarrollo", ["dev"]]] };
+  assert.equal(departmentFor(p, "dev", { log: (m) => logs.push(m) }), "desarrollo");
+  assert.ok(logs.some((m) => /gerencia/.test(m)), "avisó que gerencia está reservado");
+});
+
+test("departmentFor nunca null si hay departamentos", () => {
+  assert.equal(departmentFor({ departamentos: [["producto", ["pm"]]] }, "desconocido"), "producto", "primer tab no reservado");
+  assert.equal(departmentFor({ defaultDepartment: "qa", departamentos: [["producto", ["pm"]]] }, "desconocido"), "qa");
+  assert.equal(departmentFor({ departamentos: [["gerencia", ["dev"]]] }, "desconocido"), null, "solo un tab reservado");
+  assert.equal(departmentFor({}, "desconocido"), null, "sin departamentos ni default para la persona");
 });
 
 test("gridPlacement reproduce la grilla 4×2", () => {
@@ -60,16 +85,16 @@ test("moveToDepartment cae a move sin target si la grilla falla", () => {
   assert.equal(calls.length, 2, "intentó grilla y luego sin target");
 });
 
-test("moveToDepartment no aborta: tab ausente / tabList o paneMove fallan → pane original", () => {
+test("moveToDepartment devuelve null cuando no puede mover", () => {
   const base = { workspaceId: "w1", paneMove: () => ({ paneId: "x" }), log: () => {} };
   assert.equal(
     moveToDepartment(PROJECT, "dev", "p0", { ...base, tabList: () => [{ tab_id: "t", label: "otro" }] }),
-    "p0",
+    null,
     "tab no encontrado"
   );
   assert.equal(
     moveToDepartment(PROJECT, "dev", "p0", { ...base, tabList: () => { throw new Error("boom"); } }),
-    "p0",
+    null,
     "tabList tiró"
   );
   assert.equal(
@@ -78,8 +103,8 @@ test("moveToDepartment no aborta: tab ausente / tabList o paneMove fallan → pa
       tabList: () => [{ tab_id: "t", label: "desarrollo" }],
       paneMove: () => { throw new Error("boom"); },
     }),
-    "p0",
-    "paneMove tiró"
+    null,
+    "paneMove tiró en los dos intentos"
   );
 });
 
@@ -124,8 +149,42 @@ test("paneForAgent crea el tab del departamento si no existe (on-demand)", () =>
   assert.equal(split, false, "no divide: el agente arranca en el root del tab nuevo (sin pane vacío)");
 });
 
-test("paneForAgent sin departamento devuelve null (no contamina el tab default)", () => {
+test("paneForAgent ubica a reader en producto aunque el proyecto no lo liste", () => {
   const paneId = paneForAgent(PROJECT, "reader", {
+    workspaceId: "w1",
+    daemonPaneId: "w1:p0",
+    cwd: "/repo",
+    tabList: () => [{ tab_id: "w1:t1", label: "producto" }],
+    paneList: () => [],
+    paneSplit: () => ({ paneId: "w1:new" }),
+    paneMove: () => ({ paneId: "w1:p9" }),
+    log: () => {},
+  });
+  assert.equal(paneId, "w1:p9");
+});
+
+test("paneForAgent cierra el pane temporal y devuelve null si el move falla", () => {
+  const closed = [];
+  const paneId = paneForAgent(PROJECT, "dev", {
+    workspaceId: "w1",
+    daemonPaneId: "w1:p0",
+    cwd: "/repo",
+    tabList: () => [{ tab_id: "w1:t3", label: "desarrollo" }],
+    paneList: () => [],
+    paneSplit: () => ({ paneId: "w1:tmp" }),
+    paneMove: () => { throw new Error("no moves"); },
+    paneClose: (id) => {
+      closed.push(id);
+      return { ok: true };
+    },
+    log: () => {},
+  });
+  assert.equal(paneId, null);
+  assert.deepEqual(closed, ["w1:tmp"], "cerró el pane temporal");
+});
+
+test("paneForAgent sin departamentos posibles devuelve null (no contamina el tab default)", () => {
+  const paneId = paneForAgent({}, "desconocido", {
     workspaceId: "w1",
     daemonPaneId: "w1:p0",
     tabList: () => [{ tab_id: "t1", label: "default" }],
