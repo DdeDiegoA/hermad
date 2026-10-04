@@ -302,7 +302,9 @@ function maybeClose(project, agent, logical, personaKey, state) {
   if (project.autoClose === false) return false;
   // El orquestador (o cualquiera con su persona) nunca se cierra.
   if (logical === "orquestador" || personaKey === "orquestador") return false;
-  if (agent.agent_status !== "idle") return false;
+  // herdr reporta 'done' cuando el agente terminó su turno (no solo 'idle'):
+  // ambos son quiescentes y cuentan igual (consistente con la entrega de buzón).
+  if (agent.agent_status !== "idle" && agent.agent_status !== "done") return false;
   const entry = state.agents[logical];
   if (!entry) return false;
   // Sin workspaceId no podemos afirmar que el pane es de este proyecto (state
@@ -418,7 +420,9 @@ function runOnce(project, io) {
       // cuanto el agente deja de estar idle.
       const entry = state.agents[logical];
       if (entry) {
-        entry.idleTicks = status === "idle" ? (entry.idleTicks || 0) + 1 : 0;
+        // 'done' también es quiescente: el agente terminó su turno.
+        const quiescent = status === "idle" || status === "done";
+        entry.idleTicks = quiescent ? (entry.idleTicks || 0) + 1 : 0;
         if (maybeClose(project, agent, logical, personaKey, state)) {
           const paneId = agent.pane_id || entry.paneId;
           if (closePane(logical, live, personaKey, paneId, state, io)) {

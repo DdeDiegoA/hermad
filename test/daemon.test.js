@@ -483,6 +483,14 @@ test("auto-close: DONE nuevo + idle 2 ticks cierra el pane y registra closed", (
   assert.equal(closedPanes.length, 1, "cerrar es idempotente");
 });
 
+test("auto-close: agent_status 'done' también es quiescente (herdr no usa 'idle')", () => {
+  const { p, io, closedPanes } = closeSetup({ status: "done" });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.deepEqual(closedPanes, ["pane-1"], "cierra con 'done' igual que con 'idle'");
+  assert.ok(daemon.loadState(p.projectDir).closed.dev);
+});
+
 test("auto-close: nunca cierra al orquestador (ni por persona)", () => {
   const { p, io, closedPanes } = closeSetup({ logical: "orquestador", persona: "orquestador" });
   daemon.runOnce(p, io);
