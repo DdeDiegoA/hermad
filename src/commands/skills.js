@@ -5,6 +5,7 @@ const { execFileSync } = require("child_process");
 const { resolveProject, PROJECT_REL } = require("../lib/project");
 const skills = require("../lib/skills");
 const skillsIndex = require("../lib/skills-index");
+const discovery = require("../lib/discovery");
 const config = require("../lib/config");
 const prompts = require("../lib/prompts");
 const prompt = require("../lib/prompt");
@@ -207,15 +208,24 @@ function callVendor(kind, model, promptText) {
   return run("claude", ["-p", promptText, ...modelArgs]);
 }
 
-function askVendor(project, promptText) {
-  const orq = (project.personas || {}).orquestador || {};
+// Consulta al vendor SIN cortar el CLI: si falla, el caller cae al matcher local
+// (FR-2.3). El exit queda solo en el borde (uso inválido / errores de uso).
+function tryVendor(project, promptText) {
+  const orq = ((project || {}).personas || {}).orquestador || {};
   const model = /-m|--model/.test(orq.modelFlag || "") ? (orq.modelFlag || "").split(" ").pop() : null;
+  const kind = orq.kind || "claude";
   try {
-    return callVendor(orq.kind || "claude", model, promptText);
+    return { ok: true, output: callVendor(kind, model, promptText) };
   } catch (err) {
-    console.error(`No pude consultar el vendor (${orq.kind}): ${err.message}`);
-    process.exit(1);
+    return { ok: false, error: `${kind}: ${err.message}` };
   }
+}
+
+// Tarea de fallback para el matcher local: los cuerpos/roles de las personas.
+function personaTask(project) {
+  return Object.keys((project || {}).personas || {})
+    .map((p) => (prompts.loadPersona(p) || {}).body || (project.personas[p] || {}).rol || "")
+    .join("\n");
 }
 
 // Escribe globalSkills solo tras confirmación interactiva. `ask`/`save`
@@ -241,11 +251,12 @@ async function suggestGlobal() {
     process.exit(1);
   }
   const current = config.load().globalSkills || [];
-  const output = askVendor(project, buildGlobalPrompt({ installed, current }));
-  const suggested = parseSuggestions(output);
+  const res = tryVendor(project, buildGlobalPrompt({ installed, current }));
+  let suggested = res.ok ? parseSuggestions(res.output) : null;
   if (!suggested) {
-    console.error("El vendor no devolvió JSON parseable. Salida:\n" + output.slice(0, 500));
-    process.exit(1);
+    console.error(res.ok ? "El vendor no devolvió JSON parseable. Uso el buscador local." : `No pude consultar el vendor (${res.error}). Uso el buscador local.`);
+    const task = personaTask(project) || "team coding protocol verification review style";
+    suggested = discovery.rankLocal(task, { list: installed, globals: current, top: 10 }).map((s) => s.name);
   }
   console.log(`\nPropuesta de globalSkills: [${suggested.join(", ")}]`);
   await confirmGlobal(suggested);
@@ -267,12 +278,11 @@ function suggestPersona(personaName) {
   const p = prompts.loadPersona(personaName);
   const current = (p && p.skills) || [];
   const body = (p && p.body) || (project.personas[personaName] || {}).rol || "";
-  const output = askVendor(project, buildSuggestPrompt({ personaName, body, current, installed }));
-
-  const suggested = parseSuggestions(output);
+  const res = tryVendor(project, buildSuggestPrompt({ personaName, body, current, installed }));
+  let suggested = res.ok ? parseSuggestions(res.output) : null;
   if (!suggested) {
-    console.error("El vendor no devolvió JSON parseable. Salida:\n" + output.slice(0, 500));
-    process.exit(1);
+    console.error(res.ok ? "El vendor no devolvió JSON parseable. Uso el buscador local." : `No pude consultar el vendor (${res.error}). Uso el buscador local.`);
+    suggested = discovery.rankLocal(body, { list: installed, globals: config.load().globalSkills || [], top: 8 }).map((s) => s.name);
   }
 
   const add = suggested.filter((s) => !current.includes(s));
