@@ -52,21 +52,14 @@
   - **F8**: `hermad skills suggest <persona>` (match LLM sobre skills instaladas; solo propone).
   - Tests: `npm test` → 14/14 (`node --test`). Docs: `docs/vendors.md`, `SKILL.md`, `docs/system-prompts-design.md` (marcado superado).
 
-- 2026-10-03 — Épica "mejoras 2026-10" (track standard) — BUILD en curso (gate aprobado):
-  - Brief+decisiones: `docs/mejoras-2026-10.md`; mapa: `docs/mejoras-2026-10-map.md`; diseño: `docs/mejoras-2026-10-design.md`; `SPEC.md` + `stories.yaml` (S1–S7) en la raíz.
-  - Decisiones: alias `<proyecto>-<persona>` si el nombre está tomado (todos los agentes; buzón/rutas siguen lógicos vía `src/lib/agents.js`); auto-close = DONE + idle (nunca orquestador, ni buzón pendiente, ni dev con story abierta); tab default → `gerencia`; departamento garantizado (reader → producto); skills híbridas (spawn hornea / send adjunta rutas SKILL.md) + matcher local + `globalSkills` sugeridas y confirmadas.
-  - S3 partida en S3a (agents.js) / S3b (consumidores) / S3c (prompts). Tareas por story: `docs/mejoras-2026-10-tasks.md`. Olas: 1 S1·S2·S6 → 2 S3a → 3 S3b·S3c·S5 → 4 S4·S7.
-  - Ola 1 lanzada (`plan-devs`): dev-1=S1, dev-2=S2, dev-3=S6 en `.hermad/worktrees/<S>` (tab desarrollo).
-  - S2 mergeada (8a512b1) → daemon reiniciado: marcadores y rutas funcionan en vivo.
-  - S1 mergeada (0d4b48f). S3a mergeada (a3c30bd, `src/lib/agents.js` + `hermad agents`). Ola 3: dev-1=S3b, dev-2=S3c; S5 espera slot (dev-3 en re-review de S6).
-  - S6: bug de data loss (config.save borraba globalSkills) → fix doble: `config.save` mergea con disco + settings-agents guarda cfg completo.
-  - BUG vivo (orquestador): el daemon toma marcadores citados dentro de instrucciones pegadas (cerró S6 y mandó un BUG falso a dev-3; revertido). Fix en S3b (línea completa). Regla: NO citar `HERMAD:<EVENTO> story=…` literal en mensajes a agentes.
-  - Dedupe de marcadores por texto exacto: tras un fix, el dev debe emitir `n=2` (si repite `n=1` la ruta no se dispara); y redibujos de pantalla a veces duplican el mismo `n=1`. Revisar en S3b.
-  - S3c mergeada (8a000fa). Hotfix orquestador 5f1e403: `project.hydrate` descartaba claves opcionales de project.json (`routes`, `autoClose`, `compactPct`, `skills`) → el daemon SIEMPRE usaba DEFAULT_ROUTES. Ahora las conserva.
-  - S3b mergeada (fdfa0bc): marcadores solo por línea exacta + dedupe por identidad `evento|story|n`, reenvíos firmados con el lógico. Rutas RESTAURADAS (sin falsos tras reseed de `screens`). S6 mergeada (dcff4bb, 100 tests). Ola 4: dev-1=S4, dev-2=S5, dev-3=S7. S4 mergeada (d4009f7) pero bug vivo: auto-close solo cuenta `idle` y herdr reporta `done` al terminar → nunca cierra; fix en curso (dev-1, n=2). S5 mergeada. S7 mergeada (73b0644, 119 tests). Falta: review del fix S4 (eb91fe8). Pendientes post-épica: el aviso de ruta (`evento DONE: story=X n=2`) es escueto y el reviewer ocupado lo ignoró → enriquecerlo con branch/commit; `normalizePersona` corta en el primer `-` (un alias `hermad-architect` → `hermad`); aviso de gerencia se repite por persona.
-  - Pendientes menores: `hermad send` acepta destinos con espacios (validar nombre); el reenvío por ruta firma `from: dev` en vez de `dev-N` (corregir en S3b con logicalOf).
-  - BUG vivo (pm, verificado): `herdr.agentRead` hace JSON.parse sobre texto plano → el daemon nunca procesa marcadores; rutas y watchdog muertos en vivo. Fix en S2. Hasta entonces, handoffs a mano.
-  - `reader` agregado a `producto` en `.hermad/project.json` (el spawn fallaba: bug #3 en vivo).
+- 2026-10-03 — Épica "mejoras 2026-10" DONE (track standard; reader → architect → pm → 9 stories en 4 olas → reviewer). 120 tests verdes.
+  - Docs: `docs/mejoras-2026-10{,-map,-design,-tasks}.md`, `SPEC.md`, `stories.yaml`.
+  - (1) `src/lib/agents.js`: nombre lógico ↔ vivo; si está tomado → `<proyecto>-<persona>`; `hermad agents` lista el mapa; buzón/rutas siguen lógicos.
+  - (2) auto-close en el daemon: DONE + quiescente (`idle`|`done`) 2 ticks; nunca orquestador, buzón pendiente ni dev con story abierta; `autoClose: false` lo apaga. Verificado en vivo.
+  - (3)(4) `placement` garantiza tab de departamento (default por persona, `dev-N`→desarrollo; si el move falla cierra el pane y aborta); tab default → `gerencia` (en workspaces nuevos).
+  - (5) `hermad skills list|match|suggest [--global]|global add|rm` (índice cacheado en `~/.hermad/cache`, BM25 local); `globalSkills` en `~/.hermad/config.json` (+ `skills.add/remove` por proyecto); `spawn/send --skills` cargan por vendor, lo no nativo va como rutas SKILL.md.
+  - Fixes en vivo: `herdr.agentRead` parseaba JSON sobre texto (rutas nunca funcionaron); marcadores ahora solo por línea exacta + dedupe por identidad `evento|story|n` (re-emitir = `n` nuevo); `project.hydrate` descartaba `routes`/`autoClose`/`skills`; `config.save` mergea con disco (no borra `globalSkills`).
+  - Pendientes post-épica: `normalizePersona` corta en el primer `-`; aviso de ruta escueto (agregar branch/commit); `hermad send` acepta destinos con espacios; aviso `gerencia` repetido; agentes lanzados antes de S3b no están en `state.agents` (no se auto-cierran); Diego debe correr `hermad skills suggest --global`; aceptación en vivo de `open-orchestrator` con colisión de nombre.
 
 ## Reglas del equipo
 
