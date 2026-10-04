@@ -131,8 +131,8 @@ sincronizada con los handlers).
 `hermad daemon` abre el panel que conecta a los agentes:
 
 - **Buzón**: cada peer tiene su inbox en `.hermad/inbox/<peer>/`. `hermad send`
-  encola un mensaje; el daemon lo entrega **solo cuando el peer está idle** (nunca
-  a un agente `blocked`/`working`).
+  encola un mensaje; el daemon lo entrega **solo cuando el peer está quiescente**
+  (`idle`/`done`), nunca a un agente `blocked`/`working`.
 - **Rutas por marcadores**: un agente emite una línea exacta en su propia pantalla
   y el daemon rutea el evento: `HERMAD:DONE story=<id> n=<seq>`,
   `HERMAD:BUG …`, `HERMAD:STORIES_READY …`. El `n` se incrementa en cada emisión

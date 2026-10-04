@@ -97,7 +97,4 @@ la instalación guiada de punta a punta con `hermad setup`.
 
 ### Fixed
 
-- Comandos de npm/hermad invocados a través de shell en Windows (shims `.cmd`).
-
-[0.3.0]: https://github.com/DdeDiegoA/hermad/compare/0.2.0...0.3.0
-[0.2.0]: https://github.com/DdeDiegoA/hermad/releases/tag/0.2.0
+- Llamado a `opencode` en Windows a través de su shim `.cmd` (`shell` en win32).
