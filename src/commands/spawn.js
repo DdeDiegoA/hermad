@@ -10,9 +10,12 @@ const agents = require("../lib/agents");
 
 // Branch del cwd donde corre `spawn` (o null si no es un repo git). Se guarda en
 // la story para que el aviso al orquestador pueda ubicar el trabajo (FR-8.4).
+// `symbolic-ref` (sin flags) no agrega un `--flag` externo que la tabla de
+// comandos tendría que declarar; HEAD detached/no-repo → null.
 function currentBranch(dir = process.cwd()) {
   try {
-    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+    const ref = execFileSync("git", ["symbolic-ref", "HEAD"], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return ref.replace(/^refs\/heads\//, "") || null;
   } catch {
     return null;
   }
