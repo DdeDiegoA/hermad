@@ -20,21 +20,42 @@ function project(overrides = {}) {
   };
 }
 
-function stubIo({ list, read, prompt }) {
+function stubIo({ list, read, prompt, paneClose }) {
   const sent = [];
   const prompted = [];
+  const closedPanes = [];
   return {
     sent,
     prompted,
+    closedPanes,
     io: {
       agentList: () => list,
       agentRead: (name) => read[name] || "",
       agentPrompt: (name, text) => prompted.push({ name, text }),
+      paneClose: (paneId) => {
+        closedPanes.push(paneId);
+        return paneClose ? paneClose(paneId) : { ok: true };
+      },
       send: (m) => sent.push(m),
       log: () => {},
     },
     prompt,
   };
+}
+
+// S4: proyecto listo para auto-close (workspace propio + alta en state.agents).
+function closeSetup({ autoClose, logical = "dev", persona = "dev", status = "idle", story, lastDeliveredAt, paneClose } = {}) {
+  const p = project(autoClose === undefined ? { routes: [] } : { routes: [], autoClose });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.agents = {
+      [logical]: { live: logical, persona, paneId: "pane-1", workspaceId: "w1", doneAt: Date.now() },
+    };
+    if (lastDeliveredAt !== undefined) s.agents[logical].lastDeliveredAt = lastDeliveredAt;
+    if (story) s.stories = { [story.id]: { dev: logical, status: story.status } };
+  });
+  const list = [{ name: logical, agent_status: status, workspace_id: "w1", pane_id: "pane-1" }];
+  return { p, ...stubIo({ list, read: { [logical]: "ocioso" }, paneClose }) };
 }
 
 test("parseMarkers solo cuenta una línea completa (cita inline, ruido y falta de n se ignoran)", () => {
@@ -435,4 +456,132 @@ test("send normaliza un nombre vivo a lógico antes de encolar", () => {
   assert.equal(normalizeTarget(p.projectDir, "legacy"), "legacy");
   const file = daemon.send(p.projectDir, { from: "orq", to: normalizeTarget(p.projectDir, "hermad-architect"), text: "hola" });
   assert.ok(file.includes(path.join(".hermad", "inbox", "architect")), `buzón lógico: ${file}`);
+});
+
+// --- S4: auto-close ---------------------------------------------------------
+
+test("auto-close: DONE nuevo + idle 2 ticks cierra el pane y registra closed", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.agents = { dev: { live: "dev", persona: "dev", paneId: "pane-1", workspaceId: "w1" } };
+  });
+  const { io, closedPanes } = stubIo({
+    list: [{ name: "dev", agent_status: "idle", workspace_id: "w1", pane_id: "pane-1" }],
+    read: { dev: "listo\nHERMAD:DONE story=S1 n=1" },
+  });
+  daemon.runOnce(p, io); // tick 1: registra doneAt, idleTicks=1
+  assert.equal(daemon.loadState(p.projectDir).closed.dev, undefined, "un tick solo no alcanza");
+  daemon.runOnce(p, io); // tick 2: idleTicks=2 → cierra
+  assert.deepEqual(closedPanes, ["pane-1"]);
+  const st = daemon.loadState(p.projectDir);
+  assert.ok(st.closed.dev, "queda en closed");
+  assert.equal(st.closed.dev.live, "dev");
+  assert.equal(st.agents.dev, undefined, "baja de agents");
+  // idempotencia: ya no está en agents → no se reintenta
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 1, "cerrar es idempotente");
+});
+
+test("auto-close: nunca cierra al orquestador (ni por persona)", () => {
+  const { p, io, closedPanes } = closeSetup({ logical: "orquestador", persona: "orquestador" });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0);
+  assert.ok(daemon.loadState(p.projectDir).agents.orquestador, "sigue abierto");
+});
+
+test("auto-close: no cierra si el buzón tiene pendientes", () => {
+  const { p, io, closedPanes } = closeSetup();
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev", text: "tarea nueva" });
+  io.agentPrompt = () => {
+    throw new Error("busy"); // el mensaje queda en el buzón
+  };
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0);
+  assert.ok(daemon.loadState(p.projectDir).agents.dev, "con buzón pendiente no cierra");
+});
+
+test("auto-close: un DONE anterior a la última entrega no cierra", () => {
+  const { p, io, closedPanes } = closeSetup({ lastDeliveredAt: Date.now() + 1000 });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0, "el DONE no es posterior a la entrega");
+});
+
+test("auto-close: un dev dueño de una story abierta no se cierra hasta el done del reviewer", () => {
+  const { p, io, closedPanes } = closeSetup({ story: { id: "S1", status: "assigned" } });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0, "story abierta = no cierra ni con DONE");
+  daemon.updateState(p.projectDir, (s) => {
+    s.stories.S1.status = "done";
+  });
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 1, "con la story done sí cierra");
+});
+
+test("auto-close: sin workspace propio o sin alta en state.agents no cierra", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { dev: { live: "dev", persona: "dev", paneId: "pane-1", doneAt: Date.now() } };
+  });
+  const a = stubIo({ list: [{ name: "dev", agent_status: "idle", workspace_id: "w1", pane_id: "pane-1" }], read: { dev: "" } });
+  daemon.runOnce(p, a.io);
+  daemon.runOnce(p, a.io);
+  assert.equal(a.closedPanes.length, 0, "state sin workspaceId no cierra (homónimo ajeno)");
+
+  const q = project({ routes: [] });
+  daemon.updateState(q.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.agents = {};
+  });
+  const b = stubIo({ list: [{ name: "dev", agent_status: "idle", workspace_id: "w1", pane_id: "pane-1" }], read: { dev: "" } });
+  daemon.runOnce(q, b.io);
+  daemon.runOnce(q, b.io);
+  assert.equal(b.closedPanes.length, 0, "sin alta en state.agents no cierra");
+});
+
+test("auto-close: project.autoClose=false apaga la función", () => {
+  const { p, io, closedPanes } = closeSetup({ autoClose: false });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.equal(closedPanes.length, 0);
+});
+
+test("auto-close: pane close not-found/unknown igual marca cerrado", () => {
+  for (const code of ["pane_not_found", "unknown"]) {
+    const { p, io, closedPanes } = closeSetup({ paneClose: () => ({ ok: false, code }) });
+    daemon.runOnce(p, io);
+    daemon.runOnce(p, io);
+    assert.equal(closedPanes.length, 1, `intentó cerrar con ${code}`);
+    assert.ok(daemon.loadState(p.projectDir).closed.dev, `marcado cerrado con ${code}`);
+  }
+});
+
+test("auto-close: otro error de pane close loguea y reintenta el próximo tick", () => {
+  let fail = true;
+  const { p, io } = closeSetup({ paneClose: () => (fail ? { ok: false, code: "boom" } : { ok: true }) });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io); // idleTicks=2 → intenta y falla
+  assert.equal(daemon.loadState(p.projectDir).closed.dev, undefined, "error transitorio no cierra");
+  fail = false;
+  daemon.runOnce(p, io);
+  assert.ok(daemon.loadState(p.projectDir).closed.dev, "reintenta al tick siguiente");
+});
+
+test("auto-close: un mensaje al buzón de un lógico cerrado avisa una sola vez", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.closed = { "dev-1": { at: Date.now(), live: "hermad-dev-1", paneId: "pane-1", persona: "dev" } };
+  });
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev-1", text: "dale" });
+  const { io, sent } = stubIo({ list: [], read: {} });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  const warns = sent.filter((m) => m.to === "orquestador" && /cerrado/.test(m.text));
+  assert.equal(warns.length, 1, "avisa una sola vez");
+  assert.ok(/dev-1/.test(warns[0].text) && /--name dev-1/.test(warns[0].text));
 });
