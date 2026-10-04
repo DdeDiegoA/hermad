@@ -25,14 +25,12 @@ Sistema para orquestar agentes de coding en paralelo: **Herdr** (terminales mult
 ## CLI: `hermad`
 
 ```bash
-# instalar (clonar el repo de GitHub una vez publicado)
-git clone <repo> ~/hermad && cd ~/hermad
-npm link                       # deja `hermad` en el PATH (sin dependencias externas)
+# instalar (ÚNICO camino soportado: npm global desde GitHub — no se publica al registry)
+npm install -g github:DdeDiegoA/hermad
 
-hermad setup                  # symlinks de skill+comando /hermad + elegí CLI/modelo por agente
-                                #   detecta CLIs instaladas (claude, opencode, codex, gemini, hermes)
-                                #   y lista modelos reales según cada una (dinámico para opencode
-                                #   vía `opencode models`; catálogo estático para el resto)
+hermad setup                  # wizard: idioma, prereqs, vendors/modelo, skills, permisos,
+                                #   BMad opcional + copia del pack base y enlaces a tus CLIs
+                                #   (detecta claude, opencode, codex, gemini, hermes)
 
 hermad create-project "nombre"    # scaffolding agentico completo: git init, AGENTS.md,
                                     # personas.env (proyecto + activo), instrucciones de BMad
@@ -60,7 +58,7 @@ hermad memory slice <persona> [--story S1]           # bloque atómico de memori
 hermad plan-devs [--max N]     # N worktrees+branches desde stories.yaml (evita solape de files)
 hermad skills suggest <persona>   # propone skills para el frontmatter (no aplica solo)
 
-hermad update                 # git pull del repo instalado — así se reciben updates de GitHub
+hermad update                 # actualiza según el método detectado (npm global o clone git) y re-linkea el pack
 ```
 
 `start-team` / `orchestrate` / `open-orchestrator` **resuelven el proyecto subiendo desde el cwd** (buscan `.hermad/project.json`); si no lo encuentran, caen al activo global avisando. Así `cd proyecto-B && hermad start-team` abre B sin más. Arman el workspace/tabs/paneles/roster **nativamente** (`src/lib/orchestrator.js`). Si un agente ya está vivo en otro pane, no se pisa.
@@ -96,21 +94,40 @@ herdr tiene soporte nativo en beta (panes con `cmd.exe`/PowerShell vía ConPTY):
 powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"
 
 # hermad
-npm i -g hermad                  # cuando esté publicado; si no: git clone <repo> && cd hermad && npm link
+npm i -g github:DdeDiegoA/hermad
 hermad setup                     # junctions para dirs (sin admin); copia de archivos si el symlink no se permite
 hermad create-project "nombre" --run-bmad-install
 ```
 
 - `hermes` no corre nativo en Windows: usá WSL, o asigná sus personas a `claude`/`opencode` (`hermad settings agents`). `hermad setup` lo avisa y no instala su symlink.
 - `skill/scripts/orquestar.sh` es bash (copia de referencia); en Windows usá el CLI (`hermad start-team`, `hermad open-orchestrator`, etc.).
-- Tras cada `hermad update`, volvé a correr `hermad setup`: los archivos copiados (en vez de enlazados) no se refrescan solos.
+- `hermad update` re-linkea el pack solo; si copió archivos (en vez de enlazar), volvé a correr `hermad setup` para refrescarlos.
 
-## Deploy (una sola fuente de verdad)
+## Deploy (pack base + enlaces)
 
-Los paths de los agentes apuntan a este repo por symlink:
+`hermad setup` copia el contenido distribuible a `~/.hermad/pack` y enlaza **desde ahí** a los vendors detectados (nunca al clone: así `update` no deja enlaces colgando):
 
-- `~/.hermes/skills/autonomous-ai-agents/herdr-bmad` → `skill/`
-- `~/.claude/skills/herdr-bmad` → `skill/`
-- `~/.config/opencode/skills/herdr-bmad` → `skill/`
-- `~/.claude/commands/hermad.md` → `command/hermad.md`
-- `~/.config/opencode/commands/hermad.md` → `command/hermad.md`
+- `~/.hermes/skills/autonomous-ai-agents/herdr-bmad` → `~/.hermad/pack/skill`
+- `~/.claude/skills/herdr-bmad` → `~/.hermad/pack/skill`
+- `~/.config/opencode/skills/herdr-bmad` → `~/.hermad/pack/skill`
+- `~/.claude/commands/hermad.md` → `~/.hermad/pack/command/hermad.md`
+- `~/.config/opencode/commands/hermad.md` → `~/.hermad/pack/command/hermad.md`
+
+## Aceptación en entorno limpio (A1, A2)
+
+Guion en un contenedor Linux o VM Windows con **un** vendor + `herdr`:
+
+```bash
+npm install -g github:DdeDiegoA/hermad  # 1. instalar desde GitHub (único camino soportado)
+hermad setup                            # 2. wizard: sin warnings de skills
+hermad create-project demo              # 3. scaffolding del proyecto
+cd demo && hermad start-team            # 4. abre el equipo sin errores
+```
+
+Criterio de cierre A2 (0 strings del entorno del autor en lo distribuido):
+
+```bash
+grep -rE "/Users/|Diego|opencode-go|deepseek|kimi" src templates command skill   # → 0 coincidencias
+```
+
+En CI lo garantiza `test/portability.test.js`.
