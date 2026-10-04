@@ -1,11 +1,12 @@
 "use strict";
-const { execFileSync } = require("child_process");
+// `cp.execFileSync` (no destructure) para que los tests puedan stubearlo.
+const cp = require("child_process");
 
 const IS_WIN = process.platform === "win32";
 
 function ensureInstalled() {
   try {
-    execFileSync(IS_WIN ? "where" : "which", ["herdr"], { stdio: "ignore" });
+    cp.execFileSync(IS_WIN ? "where" : "which", ["herdr"], { stdio: "ignore" });
   } catch {
     throw new Error(
       IS_WIN
@@ -22,7 +23,7 @@ function ensureInstalled() {
 function call(args) {
   let out;
   try {
-    out = execFileSync("herdr", args, { encoding: "utf8" });
+    out = cp.execFileSync("herdr", args, { encoding: "utf8" });
   } catch (err) {
     out = err.stdout || err.stderr;
     if (!out) throw err;
@@ -158,11 +159,35 @@ function agentList(callFn = call) {
   return (r.agents || []).filter((a) => typeof a.name === "string" && a.name);
 }
 
+// `herdr agent read` imprime TEXTO plano (--format text|ansi; nunca JSON), así
+// que NO puede pasar por call()/JSON.parse: eso tiraba "respuesta no-JSON" y el
+// daemon lo tragaba con catch → state.screens vacío, processMarkers nunca corría
+// y las rutas HERMAD:DONE|BUG|STORIES_READY quedaban muertas. Devuelve stdout
+// crudo; si herdr falla, propaga la excepción (el daemon la saltea).
 function agentRead(name, { source = "visible", lines } = {}) {
-  const args = ["agent", "read", name, "--source", source];
+  const args = ["agent", "read", name, "--source", source, "--format", "text"];
   if (lines != null) args.push("--lines", String(lines));
-  const r = call(args);
-  return (r.read && r.read.text) || r.text || "";
+  return cp.execFileSync("herdr", args, { encoding: "utf8" });
 }
 
-module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, tabList, paneList, paneMove, agentStart, agentPrompt, agentWait, paneRun, agentList, agentRead };
+// `pane close` / `tab rename` son best-effort para el caller (auto-close, rename
+// del tab): nunca tiran, devuelven {ok, code} para distinguir not-found/unknown.
+function paneClose(paneId) {
+  try {
+    call(["pane", "close", paneId]);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code || null };
+  }
+}
+
+function tabRename(tabId, label) {
+  try {
+    call(["tab", "rename", tabId, label]);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code || null };
+  }
+}
+
+module.exports = { ensureInstalled, workspaceCreate, tabCreate, paneSplit, tabList, paneList, paneMove, agentStart, agentPrompt, agentWait, paneRun, agentList, agentRead, paneClose, tabRename };
