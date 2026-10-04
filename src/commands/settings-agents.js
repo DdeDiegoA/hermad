@@ -19,6 +19,9 @@ const PERMISSION_RISK = [
   "   SIN preguntarte. Un agente que se equivoque, o que siga instrucciones maliciosas",
   "   escondidas en un archivo o página que lea, puede borrar o cambiar archivos o",
   "   ejecutar comandos en tu máquina. En este modo hermad no te protege.",
+  "   Úsalo solo en una máquina o carpeta donde puedas perder el trabajo.",
+  "",
+  "Puedes cambiarlo cuando quieras con: hermad settings permissions",
 ].join("\n");
 
 const CONFIRM_OPTIONS = ["No, prefiero el modo con permisos", "Sí, lo acepto"];
@@ -78,11 +81,13 @@ async function runPermissions(args) {
   let mode = modeArg;
   let acceptedAt = null;
   if (mode === "bypass") {
+    // La pantalla de riesgo SIEMPRE se imprime antes de aplicar bypass, también
+    // con --accept-bypass en modo no-interactivo (nunca un bypass silencioso).
+    console.log(PERMISSION_RISK);
     if (!accept) {
       if (!process.stdin.isTTY) {
         throw new Error("el modo bypass exige aceptar el riesgo: repetí con --accept-bypass, o usá 'prompt'");
       }
-      console.log(PERMISSION_RISK);
       const picked = await select("¿Aceptas ese riesgo?", CONFIRM_OPTIONS, { defaultIndex: 0 });
       if (picked !== CONFIRM_OPTIONS[1]) mode = "prompt";
     }

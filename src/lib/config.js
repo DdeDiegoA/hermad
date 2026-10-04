@@ -67,8 +67,10 @@ function load(file = CONFIG_PATH) {
     bmad: { ...d.bmad, ...(onDisk.bmad && typeof onDisk.bmad === "object" ? onDisk.bmad : {}) },
     permissions:
       perms && typeof perms === "object"
-        ? { mode: perms.mode === "bypass" ? "bypass" : "prompt", acceptedAt: perms.acceptedAt || null }
-        : { mode: legacy ? "bypass" : "prompt", acceptedAt: null },
+        ? { mode: perms.mode === "bypass" ? "bypass" : "prompt", acceptedAt: perms.acceptedAt || null, ...(perms.legacy ? { legacy: true } : {}) }
+        : legacy
+          ? { mode: "bypass", acceptedAt: null, legacy: true } // migración legacy → bypass CON marca explícita (D4)
+          : { mode: "prompt", acceptedAt: null },
     schemaVersion: SCHEMA_VERSION,
   };
 }
