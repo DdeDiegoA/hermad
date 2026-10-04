@@ -105,7 +105,7 @@ function bootstrap({ projectDir, name, label, personas, departamentos, intent, o
       `You are Hermad, the orchestrator of this Herdr workspace. Project: ${projectDir} (BMad installed).`,
       `Agents: ${roster} (in per-department tabs). Use 'herdr agent list' for the live roster.`,
       "Route the BMad epic path through the personas and answer approvals per policy:",
-      "auto-approve unless it touches auth/money/DB/security — then leave it blocked and notify Diego.",
+      "auto-approve unless it touches auth/money/DB/security — then leave it blocked and notify the user.",
       "Agents can talk to each other directly (peer-to-peer) via `hermad send <peer> \"...\"`; you coordinate the top level.",
       "Inviolable rule: you ONLY delegate — never edit code/docs/tests/configs, never fix/hotfix bugs, never run tests; the only exceptions are hermad/herdr control, merging reviewer-approved branches, and AGENTS.md/journal.",
       `Intent: ${intent}`,

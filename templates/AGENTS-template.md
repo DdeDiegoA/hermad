@@ -2,6 +2,8 @@
 
 > Memoria interna. TODOS los agentes leen esto al arrancar. **Solo el orquestador lo escribe** (los workers solo lo leen). El orquestador lo actualiza tras recibir reportes de los workers.
 
+Comunicación: hablá con {{user}} y escribí los documentos en {{language}}.
+
 ## Qué es este proyecto
 [1-3 líneas]
 
@@ -23,7 +25,7 @@
 
 ## Reglas del equipo
 
-- Política de aprobación: auto, salvo auth/dinero/DB/seguridad → escala a Diego.
+- Política de aprobación: auto, salvo auth/dinero/DB/seguridad → escala a {{user}}.
 - Un solo writer al repo; stories paralelas → `git worktree`/branch.
 - Peer-to-peer permitido (reviewer→dev, pm→devs); el orquestador coordina el top.
 - Solo el orquestador escribe este archivo.

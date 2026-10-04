@@ -6,22 +6,22 @@ set -euo pipefail
 #   con intent    → arranca todo y le manda el briefing+intent al orquestador (== `hermad orchestrate`)
 #   sin intent    → arranca todo, agentes quedan conectados y en idle, sin prompt inicial (== `hermad start-team`)
 #
-# Esta lógica ahora vive nativa en hermad (src/lib/orchestrator.js) — `hermad
+# esta lógica ahora vive nativa en hermad (src/lib/orchestrator.js) — `hermad
 # start-team`/`hermad orchestrate` NO llaman a este script, lo reimplementan en JS
 # (con mejor manejo de colisión de nombre de agente). Este archivo queda para correr
-# el bootstrap a mano sin el CLI instalado, editando skill/scripts/personas.env.
+# el bootstrap a mano sin el CLI instalado. Ya NO trae un personas.env de ejemplo:
+# corré `hermad create-project` una vez y él escribe el activo en $HOME.
 
 INTENT="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Activo real: lo escribe `hermad create-project` / `hermad settings agents` en
-# $HOME (git-ignored, fuera del repo). Fallback al personas.env de ejemplo del
-# repo si todavía no corriste el CLI.
+# $HOME (git-ignored, fuera del repo).
 ACTIVE_PERSONAS_ENV="$HOME/.hermad/personas.env"
 if [[ -f "$ACTIVE_PERSONAS_ENV" ]]; then
   source "$ACTIVE_PERSONAS_ENV"
 else
-  echo "[!] $ACTIVE_PERSONAS_ENV no existe — usando ejemplo del repo. Corré 'hermad create-project' primero." >&2
-  source "$SCRIPT_DIR/personas.env"
+  echo "[!] $ACTIVE_PERSONAS_ENV no existe — corré 'hermad create-project' primero." >&2
+  exit 1
 fi
 
 command -v herdr >/dev/null || { echo "herdr no instalado: brew install herdr"; exit 1; }
@@ -105,7 +105,7 @@ if [[ -n "$INTENT" ]]; then
 Sos Hermad, el orquestador de este workspace Herdr. Proyecto: $PROJECT_DIR (BMad instalado).
 Agentes: orquestador $WORKERS (en tabs por departamento). Usá 'herdr agent list' para el roster vivo.
 Rutá la ruta épica de BMad por las personas y respondé las aprobaciones según la política:
-auto-aprueba salvo auth/dinero/DB/seguridad (ahí dejá bloqueado y notificá a Diego).
+auto-aprueba salvo auth/dinero/DB/seguridad (ahí dejá bloqueado y notificá al usuario).
 Los agentes pueden hablarse directo entre sí (peer-to-peer); vos coordinás el top.
 Intent: $INTENT
 Reportá DONE cuando la épica esté completa.

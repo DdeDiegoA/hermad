@@ -100,7 +100,7 @@ Ruta épica: **Intent → Spec → Stories → Build×stories → Integrate → 
 
 ## Política de aprobación (escalación)
 
-Auto-aprueba el plan del worker, **excepto** si toca: auth, dinero/pagos, base de datos, o seguridad → NO apruebes: deja el agente `blocked` y notificá a Diego (`herdr notification` o un archivo `ATTENTION`).
+Auto-aprueba el plan del worker, **excepto** si toca: auth, dinero/pagos, base de datos, o seguridad → NO apruebes: deja el agente `blocked` y notificá al usuario (`herdr notification` o un archivo `ATTENTION`).
 
 ## Pitfalls
 

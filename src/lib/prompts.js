@@ -33,11 +33,19 @@ function parseFrontmatter(text) {
   return { meta, body: body.trim() };
 }
 
+// skills = requeridas (si faltan: warning). optionalSkills = enriquecimiento
+// (si faltan: silencio). El BMad vive acá para que arranque sin BMad instalado.
 function loadPersona(name) {
   const file = path.join(PROMPTS_DIR, `${name}.md`);
   if (!fs.existsSync(file)) return null;
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, "utf8"));
-  return { name: meta.name || name, skills: meta.skills || [], readonly: !!meta.readonly, body };
+  return {
+    name: meta.name || name,
+    skills: meta.skills || [],
+    optionalSkills: meta.optionalSkills || [],
+    readonly: !!meta.readonly,
+    body,
+  };
 }
 
 // Compat: el cuerpo sin frontmatter (lo que se inyecta antes de Fase 2).

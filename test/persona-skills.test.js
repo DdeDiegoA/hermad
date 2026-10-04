@@ -3,10 +3,9 @@ const assert = require("assert");
 const { test } = require("node:test");
 const { loadPersona } = require("../src/lib/prompts");
 
-// Skills globales (herdr-bmad, graphify) viven en ~/.hermad/config.json, no en
-// el frontmatter. Cada persona lista SOLO lo suyo. Skill borrada a mano → este
-// test rompe.
-const EXPECTED = {
+// Las skills BMad se declaran como optionalSkills: cada persona arranca y opera
+// sin BMad instalado (FR-1.2). Skill borrada a mano → este test rompe.
+const OPTIONAL = {
   analyst: ["bmad-agent-analyst", "bmad-brainstorming"],
   architect: ["bmad-agent-architect", "bmad-architecture"],
   dev: ["bmad-agent-dev", "bmad-build"],
@@ -17,11 +16,12 @@ const EXPECTED = {
   ux: ["bmad-agent-ux-designer", "bmad-ux"],
 };
 
-test("el frontmatter de cada persona lista exactamente sus skills propias", () => {
-  for (const [persona, skills] of Object.entries(EXPECTED)) {
+test("cada persona declara sus skills BMad como opcionales (nada requerido)", () => {
+  for (const [persona, optional] of Object.entries(OPTIONAL)) {
     const p = loadPersona(persona);
     assert.ok(p, `falta templates/prompts/${persona}.md`);
-    assert.deepEqual(p.skills, skills, persona);
+    assert.deepEqual(p.optionalSkills, optional, persona);
+    assert.deepEqual(p.skills, [], `${persona}: sin skills requeridas (no bloquea sin BMad)`);
   }
 });
 

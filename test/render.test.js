@@ -119,3 +119,25 @@ test("globales efectivas y --skills entran en la allowlist sin duplicados", () =
   const a = render.renderPersona({ projectDir: dir, name: "ghost", persona: { kind: "opencode", rol: "x" }, globs: ["gskill"], extraSkills: ["gskill", "extra"] });
   assert.deepEqual(a.skillsAllow, ["gskill", "extra"], "dedupe frontmatter ∪ globales ∪ --skills");
 });
+
+test("render resuelve {{user}}/{{language}} y agrega la línea de comunicación (FR-3.5)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hermad-render-lang-"));
+  const art = render.renderPersona({
+    projectDir: dir,
+    name: "dev",
+    persona: { kind: "opencode", rol: "dev" },
+    config: { userName: "Ada", language: "es" },
+  });
+  const md = fs.readFileSync(art.promptFile, "utf8");
+  assert.match(md, /communicate with Ada and write documents in Spanish\./i);
+  assert.doesNotMatch(md, /\{\{user\}\}|\{\{language\}\}/, "sin placeholders crudos");
+
+  const anon = render.renderPersona({
+    projectDir: dir,
+    agentName: "dev-anon",
+    name: "dev",
+    persona: { kind: "opencode", rol: "dev" },
+    config: { userName: "", language: "en" },
+  });
+  assert.match(fs.readFileSync(anon.promptFile, "utf8"), /communicate with the user and write documents in English\./i);
+});

@@ -74,6 +74,18 @@ function modelIdFrom(modelFlag) {
   return i >= 0 ? flags[i + 1] : null;
 }
 
+// "es" → Spanish, resto → English. Gobierna la línea de comunicación (FR-3.5).
+function languageName(lang) {
+  return String(lang || "").toLowerCase().startsWith("es") ? "Spanish" : "English";
+}
+
+// Placeholders de plantillas (`{{user}}`, `{{language}}`). Lo usan renderPersona
+// y (para AGENTS-template.md) create-project, así no hay strings del autor (FR-1.5).
+function applyPlaceholders(text, { user = "the user", language = "English" } = {}) {
+  if (!text) return text;
+  return text.replace(/\{\{user\}\}/g, user).replace(/\{\{language\}\}/g, language);
+}
+
 // Fuente de una skill resuelta, para decidir si el vendor la carga de forma nativa
 // (proyecto primero, igual que skills.resolve). "claude-plugin" = cache de plugins.
 function skillSource(dir, sourceDir) {
@@ -118,7 +130,7 @@ const CLAUDE_DELEGATION_RULE = [
 
 // sourceDir = de dónde se lee la memoria (AGENTS.md + journal) y las skills. En
 // un worktree projectDir=wtDir (salida del agente) pero sourceDir=repo principal.
-function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50, extraSkills = [], project, globs }) {
+function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, persona, compactPct = 50, extraSkills = [], project, globs, config: cfg }) {
   const agentKey = agentName || name;
   // Una persona sin vendor elegido no puede arrancar: el default del fuente está
   // vacío a propósito (FR-4.5); el usuario lo fija en `hermad setup`.
@@ -130,20 +142,31 @@ function renderPersona({ projectDir, sourceDir = projectDir, name, agentName, pe
     warnedLegacy.done = true;
     console.log(config.LEGACY_BYPASS_WARNING);
   }
-  const p = prompts.loadPersona(name) || { skills: [], body: persona.rol || `You are the ${name} persona.` };
+  const p = prompts.loadPersona(name) || { skills: [], optionalSkills: [], body: persona.rol || `You are the ${name} persona.` };
   const memBlock = memory.slice(sourceDir, { persona: name });
 
-  // Allowlist = frontmatter ∪ globales efectivas ∪ --skills (dedup). render es el
-  // único lugar donde se arma; el split nativo/por-ruta depende del vendor (kind).
+  // Idioma/usuario: placeholders `{{user}}`/`{{language}}` + línea fija de
+  // comunicación (FR-1.5, FR-3.5). config inyectable en tests.
+  const cfg2 = cfg || require("./config").load();
+  const user = (cfg2.userName && String(cfg2.userName).trim()) || "the user";
+  const language = languageName(cfg2.language);
+  const body = applyPlaceholders(p.body, { user, language });
+
+  // Allowlist = requeridas (frontmatter ∪ persona) ∪ optionalSkills PRESENTES
+  // (las que faltan se ignoran en silencio) ∪ globales efectivas ∪ --skills.
+  const required = [...new Set([...(p.skills || []), ...(persona.skills || [])].filter(Boolean))];
+  const optional = [...new Set((p.optionalSkills || []).filter(Boolean))];
+  const { found: optionalFound } = skills.resolveAll(optional, sourceDir);
   const effectiveGlobals = globs || skills.effectiveGlobals(project || {});
-  const allow = [...new Set([...(p.skills || []), ...(persona.skills || []), ...effectiveGlobals, ...extraSkills].filter(Boolean))];
+  const allow = [...new Set([...required, ...optionalFound.map((f) => f.name), ...effectiveGlobals, ...extraSkills].filter(Boolean))];
   const { found, missing } = skills.resolveAll(allow, sourceDir);
   const native = [];
   const byPath = [];
   for (const f of found) (nativeFor(persona.kind, skillSource(f.dir, sourceDir)) ? native : byPath).push(f);
   const taskBlock = taskSkillsBlock(byPath.map((f) => path.join(f.dir, "SKILL.md")));
-  const kindBody = persona.kind === "claude" ? `${p.body}\n\n${CLAUDE_DELEGATION_RULE}` : p.body;
-  const baseBody = [kindBody, taskBlock].filter(Boolean).join("\n\n");
+  const kindBody = persona.kind === "claude" ? `${body}\n\n${CLAUDE_DELEGATION_RULE}` : body;
+  const langLine = `Communicate with ${user} and write documents in ${language}.`;
+  const baseBody = [kindBody, langLine, taskBlock].filter(Boolean).join("\n\n");
   // El prompt-por-archivo de claude/opencode NO lleva memoria: claude la recibe
   // por CLAUDE.md/@AGENTS.md + el hook, opencode por el AGENTS.md nativo. Solo el
   // fallback (hermes/codex/…) necesita el bloque atómico embebido.
@@ -279,4 +302,4 @@ function ensureGitignore(projectDir) {
   return true;
 }
 
-module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor, safeSkillDir };
+module.exports = { renderPersona, ensureClaudeMemory, ensureCommands, ensureGitignore, GEN_DIR, splitModelFlags, modelIdFrom, taskSkillsBlock, nativeFor, safeSkillDir, applyPlaceholders, languageName };

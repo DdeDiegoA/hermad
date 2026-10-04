@@ -10,8 +10,8 @@ const DEFAULT_DEPARTAMENTOS = [
 ];
 
 // Genera el personas.env que consume skill/scripts/orquestar.sh a partir del
-// config.personas (fuente: ~/.hermad/config.json) — mismo formato que el
-// personas.env de referencia en skill/scripts/.
+// config.personas (fuente: ~/.hermad/config.json) — mismo formato que consumía el
+// personas.env de ejemplo de skill/scripts/ (ya no se distribuye; FR-1.6).
 function render({ projectDir, label, personas, departamentos = DEFAULT_DEPARTAMENTOS }) {
   const order = ["orquestador", ...Object.keys(personas).filter((k) => k !== "orquestador")];
   const lines = [
