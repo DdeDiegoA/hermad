@@ -653,3 +653,36 @@ test("hermad send mantiene entero un destino con espacios y no lo parte", () => 
     { from: "orq", skillsArg: "a,b", to: "dev 3", text: "hola" }
   );
 });
+
+test("el daemon no resucita closed si el CLI relanza el lógico durante el tick (carrera write-back)", () => {
+  const p = project({ routes: [] });
+  daemon.updateState(p.projectDir, (s) => {
+    s.workspaceId = "w1";
+    s.closed = { dev: { at: Date.now(), live: "dev", paneId: "pane-0", persona: "dev" } };
+  });
+  let injected = false;
+  const io = {
+    agentList: () => {
+      if (!injected) {
+        injected = true;
+        // `hermad spawn` cae en la ventana del tick (herdr lento): da de alta el
+        // lógico y borra su closed en el mismo updateState de agents.start.
+        daemon.updateState(p.projectDir, (s) => {
+          delete s.closed.dev;
+          s.agents = { dev: { live: "dev", persona: "dev", paneId: "pane-1", workspaceId: "w1" } };
+        });
+      }
+      return [{ name: "dev", agent_status: "idle", workspace_id: "w1", pane_id: "pane-1" }];
+    },
+    agentRead: () => "",
+    agentPrompt: () => {},
+    send: () => {},
+    log: () => {},
+  };
+  daemon.runOnce(p, io);
+  assert.equal(
+    daemon.loadState(p.projectDir).closed.dev,
+    undefined,
+    "el borrado del CLI sobrevive al write-back del daemon (si no, no le entrega el buzón)"
+  );
+});

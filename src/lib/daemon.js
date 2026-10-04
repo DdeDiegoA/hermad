@@ -533,6 +533,14 @@ function runOnce(project, io) {
       delete fresh.agents[logical];
       delete fresh.agentMiss[logical];
     }
+    // closed y agents son mutuamente excluyentes: un lógico registrado como vivo
+    // NO está cerrado. Si el CLI lo relanzó durante el tick (agents.start borra
+    // closed[logical] en su propio updateState), el write-back con el snapshot
+    // viejo no debe resucitar la baja — si no, el daemon no le entrega el buzón
+    // ni respeta `closed` (FR-8.2).
+    for (const logical of Object.keys(fresh.closed)) {
+      if (fresh.agents[logical]) delete fresh.closed[logical];
+    }
   });
   return acted;
 }
