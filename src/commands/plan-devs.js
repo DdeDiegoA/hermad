@@ -9,6 +9,7 @@ const vendors = require("../lib/vendors");
 const herdr = require("../lib/herdr");
 const daemon = require("../lib/daemon");
 const placement = require("../lib/placement");
+const agents = require("../lib/agents");
 
 // dev-1..N libres: salta los nombres que ya tienen una story no terminada (si no,
 // una 2.ª corrida le pisaría el nombre a un dev vivo y los BUG irían al dev erróneo).
@@ -23,6 +24,12 @@ function allocateDevs(liveNames, count) {
     out.push(name);
   }
   return out;
+}
+
+// Seam de test: el arranque de un dev SIEMPRE pasa por agents.start (alias +
+// registro en state.agents). Devuelve el nombre vivo.
+function startDev(project, { dev, persona, kind, paneId, args, promptText }, io) {
+  return agents.start({ project, logical: dev, persona, kind, paneId, args, promptText }, io);
 }
 
 function existsBranch(projectDir, branch) {
@@ -79,10 +86,16 @@ function run(args) {
   const { selected, deferred } = stories.selectParallel(loaded.stories, slots, { done, active });
   console.log(`[plan-devs] ${loaded.file}: ${loaded.stories.length} stories · ${selected.length} nuevos (slots ${slots}/${maxDevs}, ${liveDevs.length} devs activos)`);
 
+  // Solo lo que plan-devs cambia: se aplica con updateState al final para no
+  // pisar (ni ser pisado por) lo que agents.start escriba en state.agents.
+  const updates = {};
   // Las stories sin files van a cola secuencial: no se dropean, pero las registramos
   // para poder cerrarlas con su DONE (y liberar a las que dependan de ellas).
   for (const d of deferred) {
-    if (/secuencial/.test(d.reason) && !state.stories[d.id]) state.stories[d.id] = { files: d.files || [], status: "queued" };
+    if (/secuencial/.test(d.reason) && !state.stories[d.id]) {
+      state.stories[d.id] = { files: d.files || [], status: "queued" };
+      updates[d.id] = state.stories[d.id];
+    }
   }
 
   const personas = project.personas || {};
@@ -97,6 +110,7 @@ function run(args) {
     // Ruta story → dev dueño: el daemon la usa para mandar los BUG al dev correcto
     // cuando hay devs paralelos, y para no re-seleccionar stories ya asignadas.
     state.stories[story.id] = { dev, branch, status: "assigned" };
+    updates[story.id] = state.stories[story.id];
 
     if (!devPersona) {
       console.log(`[!] no hay persona 'dev' en el proyecto — worktree creado, agente no dropeado`);
@@ -132,20 +146,21 @@ function run(args) {
       return;
     }
     try {
-      herdr.agentStart(dev, devPersona.kind, paneId, plan.args);
-      if (plan.promptText) {
-        herdr.agentWait(dev, ["idle"], 60000);
-        herdr.agentPrompt(dev, plan.promptText);
-      }
-      console.log(`[+] ${dev} dropeado en ${paneId} (cwd ${wtDir})`);
+      const live = startDev(project, { dev, persona: "dev", kind: devPersona.kind, paneId, args: plan.args, promptText: plan.promptText });
+      console.log(`[+] ${dev} dropeado en ${paneId} (cwd ${wtDir})${live !== dev ? ` — vivo ${live}` : ""}`);
     } catch (err) {
       console.log(`[!] no pude dropear ${dev} (${err.code || err.message}) — worktree ${branch} listo igual`);
     }
   });
 
-  daemon.saveState(project.projectDir, state); // registra story→dev para las rutas BUG
+  // updateState (no saveState): agents.start ya escribió state.agents en paralelo
+  // y un save con la copia vieja lo borraría.
+  daemon.updateState(project.projectDir, (fresh) => {
+    fresh.stories = fresh.stories || {};
+    Object.assign(fresh.stories, updates); // registra story→dev para las rutas BUG
+  });
   for (const d of deferred) console.log(`[=] ${d.id}: diferida (${d.reason})`);
   console.log(`\nMerge: al DONE del reviewer por story, el orquestador mergea ${drops.map((d) => d.branch).join(", ") || "(nada)"} (conflicto → gate humano).`);
 }
 
-module.exports = { run, ensureWorktree, allocateDevs };
+module.exports = { run, ensureWorktree, allocateDevs, startDev };

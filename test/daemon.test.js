@@ -37,9 +37,17 @@ function stubIo({ list, read, prompt }) {
   };
 }
 
-test("parseMarkers extrae evento/story/extra", () => {
-  const mk = daemon.parseMarkers("hola HERMAD:DONE story=S1 files=2 luego");
-  assert.deepEqual(mk, [{ event: "DONE", story: "S1", extra: { files: "2" }, raw: "HERMAD:DONE story=S1 files=2" }]);
+test("parseMarkers solo cuenta una línea completa (cita inline, ruido y falta de n se ignoran)", () => {
+  const text = [
+    'instrucción pegada: usá "HERMAD:DONE story=S1 n=1"; no lo cites',
+    "HERMAD:DONE story=S1 n=1",
+    "HERMAD:DONE story=S1 n=2.",
+    "HERMAD:DONE story=S1",
+    "HERMAD:INVENTADO story=S1 n=1",
+  ].join("\n");
+  assert.deepEqual(daemon.parseMarkers(text), [
+    { event: "DONE", story: "S1", extra: { n: "1" }, raw: "HERMAD:DONE story=S1 n=1" },
+  ]);
 });
 
 test("BUG al 3er rebote escala al orquestador en vez del dev", () => {
@@ -58,7 +66,7 @@ test("runOnce entrega buzón en idle y aplica la ruta DONE una sola vez", () => 
   const p = project();
   daemon.send(p.projectDir, { from: "orquestador", to: "dev", text: "haz S1" });
   const list = [{ name: "dev", agent_status: "idle" }];
-  const read = { dev: "trabajando... luego HERMAD:DONE story=S1" };
+  const read = { dev: "trabajando...\nHERMAD:DONE story=S1 n=1" };
   const { io, sent, prompted } = stubIo({ list, read });
 
   daemon.runOnce(p, io);
@@ -80,14 +88,14 @@ test("runOnce no entrega a un agente blocked", () => {
 
 test("devs paralelos (dev-1) se mapean a la persona dev y rutean DONE→reviewer", () => {
   const p = project();
-  const { io, sent } = stubIo({ list: [{ name: "dev-1", agent_status: "idle" }], read: { "dev-1": "HERMAD:DONE story=S1" } });
+  const { io, sent } = stubIo({ list: [{ name: "dev-1", agent_status: "idle" }], read: { "dev-1": "HERMAD:DONE story=S1 n=1" } });
   daemon.runOnce(p, io);
   assert.ok(sent.some((m) => m.to === "reviewer" && /story=S1/.test(m.text)));
 });
 
 test("un marcador que la TUI vuelve a dibujar no se dispara de nuevo", () => {
   const p = project({ routes: [{ on: "DONE", from: "dev", to: "reviewer" }] });
-  const screens = ["HERMAD:DONE story=S1", "otra cosa", "HERMAD:DONE story=S1"];
+  const screens = ["HERMAD:DONE story=S1 n=1", "otra cosa", "HERMAD:DONE story=S1 n=1"];
   let i = 0;
   const sent = [];
   const io = {
@@ -217,7 +225,7 @@ test("un agente que falla no tumba el tick para los demás", () => {
       { name: "dev", agent_status: "idle" },
       { name: "reviewer", agent_status: "idle" },
     ],
-    agentRead: (name) => (name === "dev" ? "HERMAD:DONE story=S1" : "HERMAD:BUG story=S2"),
+    agentRead: (name) => (name === "dev" ? "HERMAD:DONE story=S1 n=1" : "HERMAD:BUG story=S2 n=1"),
     agentPrompt: () => {},
     // el 1.º send (ruta del dev) explota; el del reviewer debe seguir.
     send: (m) => {
@@ -320,4 +328,70 @@ test("runOnce ignora agentes de otro workspace cuando el state conoce el suyo", 
   const mine = stubIo({ list: [{ name: "dev", agent_status: "idle", workspace_id: "w1" }], read: { dev: "" } });
   daemon.runOnce(p, mine.io);
   assert.equal(mine.prompted.length, 1, "mismo workspace: entrega");
+});
+
+test("un marcador citado dentro de una instrucción no dispara la ruta", () => {
+  const p = project({ routes: [{ on: "DONE", from: "dev", to: "reviewer" }] });
+  const { io, sent } = stubIo({
+    list: [{ name: "dev", agent_status: "idle" }],
+    read: { dev: 'emití "HERMAD:DONE story=S1 n=1" al terminar;\nseguí con la S2' },
+  });
+  daemon.runOnce(p, io);
+  assert.equal(sent.length, 0, "la cita no es un evento");
+});
+
+test("con alias, el daemon entrega al vivo y keyea marcadores por el lógico", () => {
+  const p = project();
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { "dev-1": { live: "hermad-dev-1", persona: "dev" } };
+  });
+  daemon.send(p.projectDir, { from: "orquestador", to: "dev-1", text: "hacé S3b" });
+
+  const { io, sent, prompted } = stubIo({
+    list: [{ name: "hermad-dev-1", agent_status: "idle" }],
+    read: { "hermad-dev-1": "arrancando\nHERMAD:DONE story=S3b n=1" },
+  });
+  daemon.runOnce(p, io);
+
+  assert.ok(prompted.some((m) => m.name === "hermad-dev-1" && /hacé S3b/.test(m.text)), "promptea al nombre vivo");
+  const done = sent.find((m) => /story=S3b/.test(m.text));
+  assert.ok(done, "rutea el DONE");
+  assert.equal(done.from, "dev-1", "firma con el lógico, no con la persona");
+  assert.equal(done.to, "reviewer");
+  assert.ok(daemon.loadState(p.projectDir).markers["dev-1"], "el dedupe vive bajo el lógico");
+});
+
+test("poda state.agents cuyo vivo no aparece 3 ticks seguidos", () => {
+  const p = project({ routes: [] });
+  const io = { agentList: () => [], agentRead: () => "", agentPrompt: () => {}, send: () => {}, log: () => {} };
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { dev: { live: "muerto" } };
+  });
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.ok(daemon.loadState(p.projectDir).agents.dev, "a los 2 ticks todavía está");
+  daemon.runOnce(p, io);
+  assert.equal(daemon.loadState(p.projectDir).agents.dev, undefined, "al 3.º se poda");
+
+  // si el vivo reaparece, el contador se resetea
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { dev: { live: "vivo" } };
+  });
+  const seen = { ...io, agentList: () => [{ name: "vivo", agent_status: "idle" }] };
+  daemon.runOnce(p, seen);
+  daemon.runOnce(p, io);
+  daemon.runOnce(p, io);
+  assert.ok(daemon.loadState(p.projectDir).agents.dev, "el vivo visto en el medio resetea la cuenta");
+});
+
+test("send normaliza un nombre vivo a lógico antes de encolar", () => {
+  const { normalizeTarget } = require("../src/commands/send");
+  const p = project();
+  daemon.updateState(p.projectDir, (s) => {
+    s.agents = { architect: { live: "hermad-architect" } };
+  });
+  assert.equal(normalizeTarget(p.projectDir, "hermad-architect"), "architect");
+  assert.equal(normalizeTarget(p.projectDir, "legacy"), "legacy");
+  const file = daemon.send(p.projectDir, { from: "orq", to: normalizeTarget(p.projectDir, "hermad-architect"), text: "hola" });
+  assert.ok(file.includes(path.join(".hermad", "inbox", "architect")), `buzón lógico: ${file}`);
 });

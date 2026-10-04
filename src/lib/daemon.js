@@ -4,6 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 const herdr = require("./herdr");
 const memory = require("./memory");
+const agents = require("./agents");
 
 // Vendors con umbral de compact nativo (no necesitan watchdog).
 const NATIVE_COMPACT = new Set(["claude", "hermes"]);
@@ -39,7 +40,7 @@ function lockPath(projectDir) {
 }
 
 function emptyState() {
-  return { rebounds: {}, screens: {}, markers: {}, compact: {}, stories: {}, agents: {}, closed: {} };
+  return { rebounds: {}, screens: {}, markers: {}, compact: {}, stories: {}, agents: {}, closed: {}, agentMiss: {} };
 }
 function loadState(projectDir) {
   const file = statePath(projectDir);
@@ -183,19 +184,17 @@ function markDone(projectDir, peer, file) {
   return dest;
 }
 
+// Solo cuenta una LÍNEA COMPLETA `HERMAD:<EVENTO> story=<id> n=<n>`. Un marcador
+// citado dentro de una instrucción (texto antes, `;`/`.` después) NO es un evento:
+// esa cita cerró una story viva y mandó un BUG falso (2026-10-04). El `n=<seq>`
+// es obligatorio: es la clave de dedupe (el redibujo de la TUI repite el texto).
+const MARKER_RE = /^\s*HERMAD:(DONE|BUG|STORIES_READY)\s+story=(\S+)\s+n=(\d+)\s*$/;
 function parseMarkers(text) {
   const out = [];
-  const re = /HERMAD:([A-Z_]+)\s+story=(\S+)((?:\s+[A-Za-z_][\w-]*=\S+)*)/g;
-  let m;
-  while ((m = re.exec(text))) {
-    const extra = {};
-    if (m[3]) {
-      for (const kv of m[3].trim().split(/\s+/)) {
-        const [k, v] = kv.split("=");
-        if (k) extra[k] = v;
-      }
-    }
-    out.push({ event: m[1], story: m[2], extra, raw: m[0] });
+  for (const line of String(text).split("\n")) {
+    const m = MARKER_RE.exec(line.replace(/\r$/, ""));
+    if (!m) continue;
+    out.push({ event: m[1], story: m[2], extra: { n: m[3] }, raw: line.trim() });
   }
   return out;
 }
@@ -235,8 +234,11 @@ function applyRoute(project, { fromPersona, fromAgent, event, story, extra }, st
   for (const r of matching) {
     const extraStr = Object.entries(extra || {}).map(([k, v]) => ` ${k}=${v}`).join("");
     // Sin el prefijo `HERMAD:`: el reenvío aparece en la pantalla destino y no
-    // debe contar como un marcador nuevo (eco → rebote falso).
-    io.send({ from: fromPersona, to: resolveTarget(r.to, story, state), text: `evento ${event}: story=${story}${extraStr} (de ${fromPersona})` });
+    // debe contar como un marcador nuevo (eco → rebote falso). Firma con el
+    // nombre LÓGICO del emisor (`dev-1`), no la persona (`dev`): con devs
+    // paralelos la persona no distingue quién emitió.
+    const emitter = fromAgent || fromPersona;
+    io.send({ from: emitter, to: resolveTarget(r.to, story, state), text: `evento ${event}: story=${story}${extraStr} (de ${emitter})` });
   }
   return true;
 }
@@ -300,13 +302,22 @@ function processMarkers(project, agentName, personaKey, text, state, io) {
 function runOnce(project, io) {
   const state = loadState(project.projectDir);
   const compactPct = project.compactPct || 50;
+  // logicalOf reusa el state ya cargado (sin otra lectura a disco ni io.loadState).
+  const fromState = { loadState: () => state };
   let acted = 0;
 
-  for (const agent of io.agentList()) {
+  const list = io.agentList();
+  const allLive = new Set(list.map((a) => a.name));
+
+  for (const agent of list) {
     // `agent list` es global al server: ignorar agentes de otro workspace (p.ej.
     // un dev de otro proyecto). Solo filtra si ambos lados conocen el workspace.
     if (state.workspaceId && agent.workspace_id && agent.workspace_id !== state.workspaceId) continue;
-    const personaKey = personaOf(agent.name, project.personas || {});
+    // herdr habla nombre VIVO (`hermad-dev-1` si hubo alias); buzón, rutas,
+    // marcadores y compact hablan LÓGICO (`dev-1`). Resolvemos una vez por agente.
+    const live = agent.name;
+    const logical = agents.logicalOf(project.projectDir, live, fromState);
+    const personaKey = personaOf(logical, project.personas || {});
     if (!personaKey) continue;
 
     try {
@@ -315,14 +326,14 @@ function runOnce(project, io) {
       // Buzón: de a uno por tick, nunca a blocked/working, y a done/ solo si el
       // prompt salió bien.
       if (status === "idle" || status === "done") {
-        const msg = nextPending(project.projectDir, agent.name);
+        const msg = nextPending(project.projectDir, logical);
         if (msg) {
           try {
-            io.agentPrompt(agent.name, msg.text);
-            markDone(project.projectDir, agent.name, msg.file);
+            io.agentPrompt(live, msg.text);
+            markDone(project.projectDir, logical, msg.file);
             acted++;
           } catch (err) {
-            io.log(`[!] entrega a ${agent.name} falló (${err.code || err.message}); dejo el mensaje en el buzón`);
+            io.log(`[!] entrega a ${logical} falló (${err.code || err.message}); dejo el mensaje en el buzón`);
           }
         }
       }
@@ -330,34 +341,34 @@ function runOnce(project, io) {
       // Marcadores HERMAD: (solo cuando la pantalla visible cambió).
       let text = "";
       try {
-        text = io.agentRead(agent.name, { source: "visible" });
+        text = io.agentRead(live, { source: "visible" });
       } catch {
         continue;
       }
       const hash = crypto.createHash("sha1").update(text).digest("hex");
-      if (state.screens[agent.name] !== hash) {
-        state.screens[agent.name] = hash;
-        acted += processMarkers(project, agent.name, personaKey, text, state, io);
+      if (state.screens[logical] !== hash) {
+        state.screens[logical] = hash;
+        acted += processMarkers(project, logical, personaKey, text, state, io);
       }
 
       // Watchdog de compact (solo vendors sin umbral nativo), con cooldown.
       if (status === "idle" && !NATIVE_COMPACT.has((project.personas[personaKey] || {}).kind)) {
         const pct = parseContextPct(text);
-        const last = state.compact[agent.name] || 0;
+        const last = state.compact[logical] || 0;
         if (pct != null && pct >= compactPct && Date.now() - last >= COMPACT_COOLDOWN_MS) {
           try {
-            io.agentPrompt(agent.name, "/compact");
-            state.compact[agent.name] = Date.now();
-            io.log(`[=] compact watchdog: ${agent.name} al ${pct}% → /compact`);
+            io.agentPrompt(live, "/compact");
+            state.compact[logical] = Date.now();
+            io.log(`[=] compact watchdog: ${logical} al ${pct}% → /compact`);
             acted++;
           } catch (err) {
-            io.log(`[!] compact watchdog ${agent.name}: ${err.code || err.message}`);
+            io.log(`[!] compact watchdog ${logical}: ${err.code || err.message}`);
           }
         }
       }
     } catch (err) {
       // Un agente problemático no debe tumbar el tick para todos los demás.
-      io.log(`[!] agente ${agent.name} falló en el tick (${err.message || err}); sigo con el resto`);
+      io.log(`[!] agente ${live} falló en el tick (${err.message || err}); sigo con el resto`);
     }
   }
 
@@ -373,6 +384,23 @@ function runOnce(project, io) {
     // stories es del CLI; el daemon solo propaga el `done` que ya marcó.
     for (const [id, s] of Object.entries(state.stories || {})) {
       if (s && s.status === "done" && fresh.stories && fresh.stories[id]) fresh.stories[id].status = "done";
+    }
+    // Prune: una entrada de agents cuyo vivo no aparece en `agent list` durante 3
+    // ticks seguidos es un pane muerto a mano → se borra (si no, el daemon le
+    // seguiría entregando buzón y ruteando contra un nombre fantasma).
+    fresh.agents = fresh.agents || {};
+    fresh.agentMiss = fresh.agentMiss || {};
+    for (const [logical, entry] of Object.entries(fresh.agents)) {
+      if (entry && allLive.has(entry.live)) {
+        delete fresh.agentMiss[logical];
+        continue;
+      }
+      fresh.agentMiss[logical] = (fresh.agentMiss[logical] || 0) + 1;
+      if (fresh.agentMiss[logical] >= 3) {
+        delete fresh.agents[logical];
+        delete fresh.agentMiss[logical];
+        io.log(`[-] podo ${logical} (${entry && entry.live} no aparece hace 3 ticks)`);
+      }
     }
   });
   return acted;
