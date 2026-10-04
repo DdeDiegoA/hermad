@@ -58,7 +58,8 @@
   - S3 partida en S3a (agents.js) / S3b (consumidores) / S3c (prompts). Tareas por story: `docs/mejoras-2026-10-tasks.md`. Olas: 1 S1·S2·S6 → 2 S3a → 3 S3b·S3c·S5 → 4 S4·S7.
   - Ola 1 lanzada (`plan-devs`): dev-1=S1, dev-2=S2, dev-3=S6 en `.hermad/worktrees/<S>` (tab desarrollo).
   - S2 mergeada (8a512b1) → daemon reiniciado: marcadores y rutas funcionan en vivo.
-  - S1 mergeada (0d4b48f). Ola 2: dev-1=S3a.
+  - S1 mergeada (0d4b48f). S3a mergeada (a3c30bd, `src/lib/agents.js` + `hermad agents`). Ola 3: dev-1=S3b, dev-2=S3c; S5 espera slot (dev-3 en re-review de S6).
+  - S6: bug de data loss (config.save borraba globalSkills) → fix doble: `config.save` mergea con disco + settings-agents guarda cfg completo.
   - BUG vivo (orquestador): el daemon toma marcadores citados dentro de instrucciones pegadas (cerró S6 y mandó un BUG falso a dev-3; revertido). Fix en S3b (línea completa). Regla: NO citar `HERMAD:<EVENTO> story=…` literal en mensajes a agentes.
   - Pendientes menores: `hermad send` acepta destinos con espacios (validar nombre); el reenvío por ruta firma `from: dev` en vez de `dev-N` (corregir en S3b con logicalOf).
   - BUG vivo (pm, verificado): `herdr.agentRead` hace JSON.parse sobre texto plano → el daemon nunca procesa marcadores; rutas y watchdog muertos en vivo. Fix en S2. Hasta entonces, handoffs a mano.
