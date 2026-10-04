@@ -41,7 +41,8 @@ Olas: **1** S1 · S2 · S6 → **2** S3a → **3** S3b · S3c · S5 → **4** S4
 1. `daemon.js`: el tick mapea `agent list` (nombres vivos) → lógicos con `logicalOf`; buzón sigue en `.hermad/inbox/<logico>`; entrega, marcadores y compact contra el vivo; podar `state.agents` cuyo vivo falta 3 ticks.
 2. `send.js`: normalizar destino vivo → lógico antes de encolar.
 3. `spawn.js` y `plan-devs.js`: arrancar con `agents.start` (registra el map).
-4. Tests de daemon y plan-devs con alias.
+4. **Bug vivo:** marcadores solo por línea completa (`^\s*HERMAD:(DONE|BUG|STORIES_READY) story=\S+ n=\d+\s*$`); un marcador citado en un prompt pegado (texto antes, `;`/`.` después) no cuenta. El reenvío firma con el lógico del emisor (`dev-1`), no la persona.
+5. Tests de daemon y plan-devs con alias + falsos positivos de marcador.
 
 ## S3c — prompts y comandos
 1. En los 8 `templates/prompts/*.md` y `command/{hermad,orchestrate}.md`: para hablar con un peer, `hermad send <logico>` (resuelve solo); para herdr directo (`agent read/wait/send-keys`), resolver con `hermad agents`.
